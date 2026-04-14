@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Dog {
+  id                        Int               @id @default(autoincrement())
+  name                      String
+  breed                     String?
+  age                       Float?
+  birth_date                String?
+  sex                       String?
+  neutered                  Boolean?
+  microchip_number          String?
+  photo_path                String?
+  gets_along_with_cats      String?
+  good_with_children        String?
+  energy_level              String?
+  special_behaviours        String?
+  feeding_schedule          String?
+  food_type                 String?
+  portion_size              String?
+  treats_allowed            String?
+  exercise_needs            String?
+  off_lead                  String?
+  favourite_activities      String?
+  sleeping_arrangements     String?
+  dog_commands              String?
+  food_and_treats           String?
+  dietary_requirements      String?
+  medical_requirements      String?
+  vaccination_date          String?
+  flea_worm_date            String?
+  consent_daily_activities  String?
+  concerns_daily_activities String?
+  consent_social_media      String?
+  consent_communication     String?
+  equipment_provided        String?
+  equipment_wdc             String?
+  notes                     String?
+  archived                  Boolean           @default(false)
+  created_at                DateTime          @default(now())
+  updated_at                DateTime          @updatedAt
+  owners                    Owner[]
+  vets                      Vet[]
+  buddies                   Buddy[]
+  tally_submissions         TallySubmission[]
+  invoices                  Invoice[]
+  bookings                  Booking[]
+  trial_reviews             TrialReview[]
+  incidents                 Incident[]
+}
+
+model Owner {
+  id              Int    @id @default(autoincrement())
+  dog_id          Int
+  name            String?
+  phone           String?
+  emergency_phone String?
+  address         String?
+  email           String?
+  dog             Dog    @relation(fields: [dog_id], references: [id], onDelete: Cascade)
+}
+
+model Vet {
+  id              Int    @id @default(autoincrement())
+  dog_id          Int
+  name            String?
+  phone           String?
+  emergency_phone String?
+  address         String?
+  email           String?
+  dog             Dog    @relation(fields: [dog_id], references: [id], onDelete: Cascade)
+}
+
+model Buddy {
+  id              Int     @id @default(autoincrement())
+  dog_id          Int
+  name            String?
+  phone           String?
+  emergency_phone String?
+  address         String?
+  email           String?
+  is_primary      Boolean @default(false)
+  dog             Dog     @relation(fields: [dog_id], references: [id], onDelete: Cascade)
+}
+
+model TallySubmission {
+  id            Int      @id @default(autoincrement())
+  submission_id String   @unique
+  dog_id        Int?
+  raw_data      String
+  imported_at   DateTime @default(now())
+  dog           Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
+}
+
+model Invoice {
+  id             Int      @id @default(autoincrement())
+  invoice_number String   @unique
+  dog_id         Int?
+  dog            Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
+  client_name    String?
+  client_email   String?
+  client_phone   String?
+  client_address String?
+  dog_name       String?
+  dog_breed      String?
+  services       String   @default("[]")
+  notes          String?
+  invoice_date   String?
+  due_date       String?
+  apply_discount Boolean  @default(false)
+  total          Float    @default(0)
+  status         String   @default("Unpaid")
+  paid_date      String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+model TrialReview {
+  id                Int      @id @default(autoincrement())
+  dog_id            Int
+  dog               Dog      @relation(fields: [dog_id], references: [id], onDelete: Cascade)
+  trial_type        String   // 'Boarding' | 'Daycare'
+  outcome           String   @default("Pending") // 'Passed' | 'Failed' | 'Pending'
+  start_datetime    String?
+  end_datetime      String?
+  dogs_mixed_with   String?
+  completed_by      String?
+  log_date          String?
+  // Sections
+  behaviour_notes   String?
+  toileting_notes   String?
+  appetite_notes    String?
+  sleeping_notes    String?  // Boarding only
+  walks_notes       String?
+  health_notes      String?
+  actions_notes     String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+}
+
+model Booking {
+  id                Int      @id @default(autoincrement())
+  dog_id            Int?
+  dog               Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
+  dog_name          String
+  owner_name        String?
+  owner_email       String?
+  booking_type      String   // 'Boarding' | 'Daycare'
+  service_type      String?  // 'Half Day Care' | 'Full Day Care' | 'Long Day Care' | 'Overnight Care'
+  rate_type         String   @default("Standard")
+  start_date        String
+  end_date          String?
+  drop_off_time     String?
+  pick_up_time      String?
+  notes             String?
+  status            String   @default("Confirmed")
+  google_event_id   String?
+  confirmation_sent Boolean  @default(false)
+  is_recurring      Boolean  @default(false)
+  day_of_week       Int?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+}
+
+model UnavailablePeriod {
+  id         Int      @id @default(autoincrement())
+  start_date String
+  end_date   String
+  reason     String   // 'Holiday' | 'Illness' | 'Personal' | 'Other'
+  created_at DateTime @default(now())
+}
+
+model Incident {
+  id                  Int      @id @default(autoincrement())
+  dog_id              Int?
+  dog                 Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
+  completed_by        String?
+  incident_date       String?
+  incident_time       String?
+  location            String?
+  witnesses           String?
+  description         String?
+  root_causes         String?
+  prevention_measures String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+}
