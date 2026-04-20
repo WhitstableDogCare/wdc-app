@@ -53,6 +53,8 @@ model Dog {
   bookings                  Booking[]
   trial_reviews             TrialReview[]
   incidents                 Incident[]
+  conflicts_as_dog1         DogConflict[]     @relation("ConflictAsDog1")
+  conflicts_as_dog2         DogConflict[]     @relation("ConflictAsDog2")
 }
 
 model Owner {
@@ -166,6 +168,18 @@ model Booking {
   day_of_week       Int?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+}
+
+model DogConflict {
+  id         Int      @id @default(autoincrement())
+  dog_id_1   Int
+  dog_id_2   Int
+  notes      String?
+  dog1       Dog      @relation("ConflictAsDog1", fields: [dog_id_1], references: [id], onDelete: Cascade)
+  dog2       Dog      @relation("ConflictAsDog2", fields: [dog_id_2], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+
+  @@unique([dog_id_1, dog_id_2])
 }
 
 model UnavailablePeriod {

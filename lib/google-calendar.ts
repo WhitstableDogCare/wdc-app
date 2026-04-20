@@ -145,6 +145,41 @@ export async function deleteCalendarEvent(eventId: string): Promise<void> {
 
 // --- Public calendar helpers ---
 
+// Delete all past availability events from the public calendar (before today)
+export async function deletePastPublicEvents(calendarId: string): Promise<void> {
+  try {
+    const calendar = google.calendar({ version: 'v3', auth: getAuth() })
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const oneYearAgo = new Date(today)
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+
+    const res = await calendar.events.list({
+      calendarId,
+      timeMin: oneYearAgo.toISOString(),
+      timeMax: today.toISOString(),
+      singleEvents: true,
+      maxResults: 2500,
+    })
+
+    const toDelete = (res.data.items ?? []).filter(
+      e => e.summary === 'Spaces Available' || e.summary === 'Fully Booked' || e.summary === 'Unavailable'
+    )
+
+    for (const event of toDelete) {
+      if (event.id) {
+        await calendar.events.delete({ calendarId, eventId: event.id })
+      }
+    }
+
+    if (toDelete.length > 0) {
+      console.log(`[Public Calendar] Deleted ${toDelete.length} past event(s)`)
+    }
+  } catch (e) {
+    console.error('Public calendar past event cleanup error:', e)
+  }
+}
+
 // Delete any "Booked" or "Unavailable" all-day events on the given date from the public calendar
 export async function clearPublicDayEvents(calendarId: string, date: string): Promise<void> {
   try {

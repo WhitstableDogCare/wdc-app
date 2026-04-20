@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import { readConfig } from './config'
-import { clearPublicDayEvents, createPublicDayEvent } from './google-calendar'
+import { clearPublicDayEvents, createPublicDayEvent, deletePastPublicEvents } from './google-calendar'
 
 const MAX_CAPACITY = 5
 
@@ -75,6 +75,10 @@ export async function syncPublicCalendarDays(startDate: string, endDate: string)
   if (!config.publicGoogleCalendarId || !config.googleRefreshToken) return
 
   const calendarId = config.publicGoogleCalendarId
+
+  // Clean up any leftover events from previous days
+  await deletePastPublicEvents(calendarId)
+
   const dates = datesInRange(startDate, endDate)
 
   // Run sequentially to avoid rate-limit issues

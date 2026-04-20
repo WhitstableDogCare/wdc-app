@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { SERVICE_PRESETS, ServiceLine, addDays, calcNights, serviceAmount, inferPresetFromTimes, buildServiceLines } from '@/lib/invoice-utils'
 
 interface DogSummary {
   id: number
@@ -16,16 +17,6 @@ interface DogDetail {
   owners: { name: string | null; email: string | null; phone: string | null; address: string | null }[]
 }
 
-interface ServiceLine {
-  id: string
-  type: 'boarding' | 'daycare'
-  description: string
-  startDate: string
-  endDate: string
-  quantity: number
-  rate: number
-}
-
 interface Config {
   businessName?: string
   businessAddress?: string
@@ -34,35 +25,13 @@ interface Config {
   paymentInfo?: string
 }
 
-const SERVICE_PRESETS = [
-  { name: 'Half Day Care', detail: 'max 4 hours', standard: 20, peak: 25, type: 'daycare' as const },
-  { name: 'Full Day Care', detail: 'max 8 hours', standard: 30, peak: 40, type: 'daycare' as const },
-  { name: 'Long Day Care', detail: 'max 12 hours', standard: 40, peak: 50, type: 'daycare' as const },
-  { name: 'Overnight Care', detail: '12–24 hours', standard: 50, peak: 60, type: 'boarding' as const },
-]
-
 function uid() { return Math.random().toString(36).slice(2) }
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + 'T12:00:00')
-  d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
-}
-
-function calcNights(s: ServiceLine): number {
-  if (s.type !== 'boarding' || !s.startDate || !s.endDate) return s.quantity
-  const diff = Math.round((new Date(s.endDate).getTime() - new Date(s.startDate).getTime()) / 86400000)
-  return Math.max(0, diff)
-}
-
-function serviceAmount(s: ServiceLine): number {
-  return calcNights(s) * s.rate
-}
 
 function NewInvoiceInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedDogId = searchParams.get('dogId')
+  const preselectedBookingId = searchParams.get('bookingId')
 
   const [dogs, setDogs] = useState<DogSummary[]>([])
   const [config, setConfig] = useState<Config>({})
@@ -103,9 +72,37 @@ function NewInvoiceInner() {
     }))
   }, [])
 
+  const loadFromBooking = useCallback(async (bookingId: string) => {
+    const res = await fetch(`/api/bookings/${bookingId}`)
+    const booking = await res.json()
+
+    // Load full client details via the dog record
+    if (booking.dog?.id) {
+      setSelectedDogId(String(booking.dog.id))
+      await loadDog(String(booking.dog.id))
+    } else {
+      setForm(f => ({
+        ...f,
+        dog_name: booking.dog_name ?? '',
+        client_name: booking.owner_name ?? '',
+        client_email: booking.owner_email ?? '',
+      }))
+    }
+
+    // Infer service type from drop-off/pick-up times (rate_type is not stored on bookings,
+    // so we always default to Standard — the user can switch to Peak on the invoice if needed)
+    const isBoarding = booking.booking_type === 'Boarding'
+    const preset = inferPresetFromTimes(booking.drop_off_time, booking.pick_up_time, isBoarding)
+
+    if (preset) {
+      setServices(buildServiceLines(preset, booking, uid))
+    }
+  }, [loadDog])
+
   useEffect(() => {
-    if (preselectedDogId) loadDog(preselectedDogId)
-  }, [preselectedDogId, loadDog])
+    if (preselectedBookingId) loadFromBooking(preselectedBookingId)
+    else if (preselectedDogId) loadDog(preselectedDogId)
+  }, [preselectedBookingId, preselectedDogId, loadFromBooking, loadDog])
 
   const handleDogChange = async (dogId: string) => {
     setSelectedDogId(dogId)

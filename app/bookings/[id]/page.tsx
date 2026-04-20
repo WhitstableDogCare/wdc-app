@@ -209,6 +209,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
             )}
+            <Link href={`/invoices/new?bookingId=${booking.id}`}
+              className="w-full py-2 rounded-lg text-sm font-medium bg-[#2d6a4f] text-white text-center hover:bg-[#245a41] transition-colors">
+              🧾 Create Invoice
+            </Link>
             <button onClick={handleCancel} disabled={cancelling}
               className="flex-1 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60">
               {cancelling ? 'Cancelling...' : 'Cancel Booking'}

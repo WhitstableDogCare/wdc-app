@@ -33,6 +33,7 @@ function NewBookingInner() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [capacityWarning, setCapacityWarning] = useState<string | null>(null)
+  const [conflictWarnings, setConflictWarnings] = useState<{ dogName: string; notes: string | null }[]>([])
 
   function nextOccurrence(dow: number): string {
     const d = new Date()
@@ -80,6 +81,16 @@ function NewBookingInner() {
       ))
       .catch(() => setCapacityWarning(null))
   }, [startDate, endDate, bookingType])
+
+  useEffect(() => {
+    if (!selectedDogId || !startDate) { setConflictWarnings([]); return }
+    const end = bookingType === 'Boarding' ? endDate : startDate
+    if (!end) { setConflictWarnings([]); return }
+    fetch(`/api/bookings/conflicts?dogId=${selectedDogId}&start=${startDate}&end=${end}`)
+      .then(r => r.json())
+      .then(setConflictWarnings)
+      .catch(() => setConflictWarnings([]))
+  }, [selectedDogId, startDate, endDate, bookingType])
 
   const handleSubmit = async () => {
     if (!dogName) { setError('Dog name is required.'); return }
@@ -230,6 +241,12 @@ function NewBookingInner() {
         {capacityWarning && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-3 text-sm">{capacityWarning}</div>
         )}
+        {conflictWarnings.map((w, i) => (
+          <div key={i} className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">
+            <p className="font-medium">⚠️ {w.dogName} is also booked on these dates and doesn&apos;t get along with {dogName || 'this dog'}.</p>
+            {w.notes && <p className="mt-0.5 text-red-600">{w.notes}</p>}
+          </div>
+        ))}
 
         {/* Notes */}
         <div>

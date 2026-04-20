@@ -275,6 +275,109 @@ function TrialCard({ trial, onEdit, onDelete }: { trial: TrialReview; onEdit: ()
   )
 }
 
+interface DogConflict {
+  id: number
+  dog: { id: number; name: string; breed: string | null }
+  notes: string | null
+}
+
+function DogConflictsSection({ dogId, allDogs }: { dogId: number; allDogs: { id: number; name: string; breed: string | null }[] }) {
+  const [conflicts, setConflicts] = useState<DogConflict[]>([])
+  const [adding, setAdding] = useState(false)
+  const [selectedId, setSelectedId] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/dogs/${dogId}/conflicts`).then(r => r.json()).then(setConflicts)
+  }, [dogId])
+
+  const conflictingIds = new Set([dogId, ...conflicts.map(c => c.dog.id)])
+  const available = allDogs.filter(d => !conflictingIds.has(d.id))
+
+  const handleAdd = async () => {
+    if (!selectedId) return
+    setSaving(true)
+    const res = await fetch(`/api/dogs/${dogId}/conflicts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otherDogId: parseInt(selectedId), notes: notes.trim() || null }),
+    })
+    const newConflict = await res.json()
+    setConflicts(prev => [...prev, newConflict].sort((a, b) => a.dog.name.localeCompare(b.dog.name)))
+    setSelectedId('')
+    setNotes('')
+    setAdding(false)
+    setSaving(false)
+  }
+
+  const handleRemove = async (otherDogId: number) => {
+    if (!confirm('Remove this conflict?')) return
+    await fetch(`/api/dogs/${dogId}/conflicts`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otherDogId }),
+    })
+    setConflicts(prev => prev.filter(c => c.dog.id !== otherDogId))
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Doesn&apos;t Get Along With</span>
+        {!adding && (
+          <button onClick={() => setAdding(true)}
+            className="text-xs text-[#2d6a4f] hover:underline font-medium">+ Add</button>
+        )}
+      </div>
+
+      {conflicts.length === 0 && !adding && (
+        <p className="text-sm text-gray-400">No conflicts recorded.</p>
+      )}
+
+      <div className="space-y-2">
+        {conflicts.map(c => (
+          <div key={c.id} className="flex items-start justify-between gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            <div>
+              <p className="text-sm font-medium text-gray-800">
+                🚫 {c.dog.name}{c.dog.breed ? <span className="text-gray-400 font-normal"> ({c.dog.breed})</span> : null}
+              </p>
+              {c.notes && <p className="text-xs text-gray-500 mt-0.5">{c.notes}</p>}
+            </div>
+            <button onClick={() => handleRemove(c.dog.id)}
+              className="text-red-400 hover:text-red-600 text-xs shrink-0 mt-0.5">Remove</button>
+          </div>
+        ))}
+      </div>
+
+      {adding && (
+        <div className="mt-2 border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+          <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white">
+            <option value="">— Select a dog —</option>
+            {available.map(d => (
+              <option key={d.id} value={d.id}>{d.name}{d.breed ? ` (${d.breed})` : ''}</option>
+            ))}
+          </select>
+          <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="Notes (optional) — e.g. snapped at each other during trial"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <div className="flex gap-2">
+            <button onClick={handleAdd} disabled={!selectedId || saving}
+              className="bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#245a41] disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button onClick={() => { setAdding(false); setSelectedId(''); setNotes('') }}
+              className="text-gray-500 px-3 py-1.5 rounded-lg text-xs border border-gray-200 hover:bg-gray-100">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DogTrialsTab({ dogId }: { dogId: number }) {
   const [trials, setTrials]       = useState<TrialReview[]>([])
   const [loading, setLoading]     = useState(true)
@@ -691,6 +794,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
   const { id } = use(params)
   const router = useRouter()
   const [dog, setDog] = useState<Dog | null>(null)
+  const [allDogs, setAllDogs] = useState<{ id: number; name: string; breed: string | null }[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Profile')
   const [notes, setNotes] = useState('')
@@ -710,6 +814,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
         setLoading(false)
       })
       .catch(() => setLoading(false))
+    fetch('/api/dogs').then(r => r.json()).then(setAllDogs)
   }, [id])
 
   const handleDelete = async () => {
@@ -940,6 +1045,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
               <InfoRow label="Gets Along With Cats" value={dog.gets_along_with_cats} />
               <InfoRow label="Good With Children" value={dog.good_with_children} />
               <InfoRow label="Special Behaviours / Triggers" value={dog.special_behaviours} />
+              <DogConflictsSection dogId={dog.id} allDogs={allDogs} />
               <div className="border-t border-gray-100 my-4" />
               <InfoRow label="Exercise Needs" value={dog.exercise_needs} />
               <InfoRow label="Sleeping Arrangements" value={dog.sleeping_arrangements} />
