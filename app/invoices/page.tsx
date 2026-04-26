@@ -7,9 +7,11 @@ interface Invoice {
   id: number
   invoice_number: string
   invoice_date: string | null
+  due_date: string | null
   dog_name: string | null
   client_name: string | null
   total: number
+  status: string
   dog: { id: number; name: string; photo_path: string | null } | null
 }
 
@@ -63,9 +65,10 @@ export default function InvoicesPage() {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoice #</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dog</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
               </tr>
             </thead>
@@ -77,9 +80,14 @@ export default function InvoicesPage() {
                       #{inv.invoice_number}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{fmt(inv.invoice_date)}</td>
                   <td className="px-4 py-3 font-medium text-gray-800">{inv.dog_name || '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{inv.client_name || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{fmt(inv.due_date)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {inv.status}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold text-gray-900">£{inv.total.toFixed(2)}</td>
                 </tr>
               ))}

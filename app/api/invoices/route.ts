@@ -4,7 +4,7 @@ import { readConfig, writeConfig } from '@/lib/config'
 
 export async function GET() {
   const invoices = await prisma.invoice.findMany({
-    orderBy: { invoice_date: 'desc' },
+    orderBy: { due_date: 'asc' },
     include: { dog: { select: { id: true, name: true, photo_path: true } } },
   })
   return NextResponse.json(invoices)
