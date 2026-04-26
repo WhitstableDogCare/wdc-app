@@ -105,6 +105,8 @@ model Invoice {
   invoice_number String   @unique
   dog_id         Int?
   dog            Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
+  booking_id     Int?     @unique
+  booking        Booking? @relation(fields: [booking_id], references: [id], onDelete: SetNull)
   client_name    String?
   client_email   String?
   client_phone   String?
@@ -119,6 +121,7 @@ model Invoice {
   total          Float    @default(0)
   status         String   @default("Unpaid")
   paid_date      String?
+  payment_method String?  // 'Bank Transfer' | 'Cash'
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 }
@@ -166,6 +169,8 @@ model Booking {
   confirmation_sent Boolean  @default(false)
   is_recurring      Boolean  @default(false)
   day_of_week       Int?
+  invoice_flagged   Boolean  @default(false) // true if booking edited after invoice was sent
+  invoice           Invoice?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 }

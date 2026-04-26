@@ -10,7 +10,10 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params
   const booking = await prisma.booking.findUnique({
     where: { id: parseInt(id) },
-    include: { dog: { select: { id: true, name: true, photo_path: true } } },
+    include: {
+      dog: { select: { id: true, name: true, photo_path: true } },
+      invoice: { select: { id: true, invoice_number: true, status: true, total: true } },
+    },
   })
   if (!booking) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(booking)
@@ -24,6 +27,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const isRecurring = body.isRecurring ?? existing.is_recurring
+
+  // Check if this booking has a linked invoice (flag it if so)
+  const linkedInvoice = await prisma.invoice.findUnique({ where: { booking_id: parseInt(id) } })
+  const shouldFlag = !!linkedInvoice
 
   const updated = await prisma.booking.update({
     where: { id: parseInt(id) },
@@ -42,6 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       status: body.status ?? existing.status,
       is_recurring: isRecurring,
       day_of_week: isRecurring ? (body.dayOfWeek ?? existing.day_of_week) : null,
+      ...(shouldFlag ? { invoice_flagged: true } : {}),
     },
   })
 

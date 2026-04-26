@@ -51,6 +51,7 @@ export async function PATCH(
     data: {
       status: body.status,
       paid_date: body.paid_date ?? null,
+      payment_method: body.payment_method ?? null,
     },
   })
   return NextResponse.json(invoice)

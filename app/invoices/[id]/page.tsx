@@ -23,6 +23,7 @@ interface Invoice {
   total: number
   status: string
   paid_date: string | null
+  payment_method: string | null
 }
 
 interface Config {
@@ -41,6 +42,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [togglingPaid, setTogglingPaid] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [emailTo, setEmailTo] = useState('')
@@ -81,9 +83,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     setSending(false)
   }
 
-  const handleTogglePaid = async () => {
+  const handleTogglePaid = async (paymentMethod?: string) => {
     if (!invoice) return
     setTogglingPaid(true)
+    setShowPaymentModal(false)
     const isPaid = invoice.status === 'Paid'
     const res = await fetch(`/api/invoices/${id}`, {
       method: 'PATCH',
@@ -91,10 +94,11 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       body: JSON.stringify({
         status: isPaid ? 'Unpaid' : 'Paid',
         paid_date: isPaid ? null : new Date().toISOString().split('T')[0],
+        payment_method: isPaid ? null : (paymentMethod ?? null),
       }),
     })
     const updated = await res.json()
-    setInvoice(inv => inv ? { ...inv, status: updated.status, paid_date: updated.paid_date } : inv)
+    setInvoice(inv => inv ? { ...inv, status: updated.status, paid_date: updated.paid_date, payment_method: updated.payment_method } : inv)
     setTogglingPaid(false)
   }
 
@@ -139,13 +143,15 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center gap-3">
           <Link href="/bookings" className="text-sm text-[#2d6a4f] hover:underline">← Invoices</Link>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${invoice.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-            {invoice.status === 'Paid' ? `✓ Paid${invoice.paid_date ? ` · ${new Date(invoice.paid_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}` : 'Unpaid'}
+            {invoice.status === 'Paid'
+              ? `✓ Paid${invoice.payment_method ? ` · ${invoice.payment_method}` : ''}${invoice.paid_date ? ` · ${new Date(invoice.paid_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
+              : 'Unpaid'}
           </span>
         </div>
         <div className="flex items-center gap-2">
           {/* Primary actions */}
           <button
-            onClick={handleTogglePaid}
+            onClick={() => invoice.status === 'Paid' ? handleTogglePaid() : setShowPaymentModal(true)}
             disabled={togglingPaid}
             className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-60 ${invoice.status === 'Paid' ? 'border border-gray-200 text-gray-600 hover:bg-gray-50' : 'bg-green-600 text-white hover:bg-green-700'}`}
           >
@@ -211,6 +217,36 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <InvoicePrint invoice={invoiceData} business={business} applyDiscount={invoice.apply_discount} />
       </div>
+
+      {/* Payment method modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 print:hidden">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h2 className="text-lg font-semibold text-[#2d2d4e] mb-2">How was this paid?</h2>
+            <p className="text-sm text-gray-500 mb-5">Select the payment method for your records.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleTogglePaid('Bank Transfer')}
+                className="w-full py-3 rounded-xl text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+              >
+                🏦 Bank Transfer
+              </button>
+              <button
+                onClick={() => handleTogglePaid('Cash')}
+                className="w-full py-3 rounded-xl text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+              >
+                💵 Cash
+              </button>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="w-full py-2 rounded-xl text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Email modal */}
       {showEmailModal && (

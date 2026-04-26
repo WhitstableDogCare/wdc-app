@@ -33,12 +33,20 @@ export default function InvoicesPage() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
-        <Link
-          href="/invoices/new"
-          className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors"
-        >
-          + New Invoice
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/invoices/bulk"
+            className="border border-[#2d6a4f] text-[#2d6a4f] px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors"
+          >
+            📤 Send Invoices
+          </Link>
+          <Link
+            href="/invoices/new"
+            className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors"
+          >
+            + New Invoice
+          </Link>
+        </div>
       </div>
 
       {loading ? (

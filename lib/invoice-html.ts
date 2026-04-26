@@ -196,12 +196,15 @@ export function generateInvoiceHtml(invoice: InvoiceRow, config: Config): string
     ` : ''}
 
     <!-- Payment details -->
-    ${config.paymentInfo ? `
     <div style="background:#f8fafc;border-radius:8px;padding:16px;margin-bottom:24px;">
-      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px;">Payment Details</p>
-      <p style="font-size:13px;color:#475569;">${nl2br(config.paymentInfo)}</p>
+      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:12px;">Payment Options</p>
+      ${config.paymentInfo ? `
+      <p style="font-size:12px;font-weight:600;color:#334155;margin-bottom:4px;">🏦 Bank Transfer</p>
+      <p style="font-size:13px;color:#475569;margin-bottom:12px;">${nl2br(config.paymentInfo)}</p>
+      ` : ''}
+      <p style="font-size:12px;font-weight:600;color:#334155;margin-bottom:4px;">💵 Cash</p>
+      <p style="font-size:13px;color:#475569;">Please bring £${total.toFixed(2)} in cash on the day of your booking.</p>
     </div>
-    ` : ''}
 
     <p style="text-align:center;font-size:11px;color:#cbd5e1;margin-top:32px;">Thank you for your business!</p>
   </div>

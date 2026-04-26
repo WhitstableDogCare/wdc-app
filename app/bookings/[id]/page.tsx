@@ -19,8 +19,10 @@ interface Booking {
   notes: string | null
   status: string
   confirmation_sent: boolean
+  invoice_flagged: boolean
   google_event_id: string | null
   dog: { id: number; name: string; photo_path: string | null } | null
+  invoice: { id: number; invoice_number: string; status: string; total: number } | null
 }
 
 function formatDate(d: string) {
@@ -46,6 +48,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const [cancelling, setCancelling] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
+  const [resending, setResending] = useState(false)
+  const [resendResult, setResendResult] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/bookings/${id}`).then(r => r.json()).then(data => {
@@ -77,6 +81,21 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       setSyncResult(data.error ?? 'Sync failed')
     }
     setSyncing(false)
+  }
+
+  const handleResendInvoice = async () => {
+    if (!booking?.invoice) return
+    setResending(true)
+    setResendResult(null)
+    const email = booking.owner_email
+    if (!email) { setResendResult('No email address on this booking.'); setResending(false); return }
+    const res = await fetch(`/api/invoices/${booking.invoice.id}/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: email }),
+    })
+    setResendResult(res.ok ? '✓ Invoice resent' : 'Failed to resend invoice')
+    setResending(false)
   }
 
   const handleCancel = async () => {
@@ -183,13 +202,23 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
 
-          <div className="flex items-center gap-4 pt-2 border-t border-gray-100 text-xs text-gray-400">
+          <div className="flex items-center gap-4 pt-2 border-t border-gray-100 text-xs text-gray-400 flex-wrap">
             {booking.google_event_id
               ? <span className="text-green-600">✓ Linked to Google Calendar</span>
               : <span className="text-gray-400">Not linked to Google Calendar</span>
             }
             {booking.confirmation_sent && <span>✓ Confirmation sent</span>}
+            {booking.invoice && (
+              <span className={`px-2 py-0.5 rounded-full font-medium ${booking.invoice.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                {booking.invoice.status === 'Paid' ? '✓ Paid' : `Unpaid — £${booking.invoice.total.toFixed(2)}`}
+              </span>
+            )}
           </div>
+          {booking.invoice_flagged && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+              ⚠️ <strong>This booking was edited after the invoice was sent.</strong> Check the invoice is still accurate and resend if needed.
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -209,10 +238,28 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
             )}
-            <Link href={`/invoices/new?bookingId=${booking.id}`}
-              className="w-full py-2 rounded-lg text-sm font-medium bg-[#2d6a4f] text-white text-center hover:bg-[#245a41] transition-colors">
-              🧾 Create Invoice
-            </Link>
+            {booking.invoice ? (
+              <div className="flex flex-col gap-2">
+                <Link href={`/invoices/${booking.invoice.id}`}
+                  className="w-full py-2 rounded-lg text-sm font-medium bg-[#2d6a4f] text-white text-center hover:bg-[#245a41] transition-colors">
+                  🧾 View Invoice #{booking.invoice.invoice_number}
+                </Link>
+                <button onClick={handleResendInvoice} disabled={resending}
+                  className="w-full py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-60">
+                  {resending ? 'Sending...' : '📤 Resend Invoice'}
+                </button>
+                {resendResult && (
+                  <p className={`text-xs text-center font-medium ${resendResult.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
+                    {resendResult}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <Link href={`/invoices/new?bookingId=${booking.id}`}
+                className="w-full py-2 rounded-lg text-sm font-medium bg-[#2d6a4f] text-white text-center hover:bg-[#245a41] transition-colors">
+                🧾 Create Invoice
+              </Link>
+            )}
             <button onClick={handleCancel} disabled={cancelling}
               className="flex-1 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60">
               {cancelling ? 'Cancelling...' : 'Cancel Booking'}
