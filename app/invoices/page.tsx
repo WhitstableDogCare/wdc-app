@@ -59,42 +59,63 @@ export default function InvoicesPage() {
           <p className="font-medium">No invoices yet</p>
           <p className="text-sm mt-1">Create your first invoice to get started</p>
         </div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoice #</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dog</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map(inv => (
-                <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-[#2d6a4f] hover:underline">
-                      #{inv.invoice_number}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-gray-800">{inv.dog_name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{inv.client_name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{fmt(inv.due_date)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900">£{inv.total.toFixed(2)}</td>
+      ) : (() => {
+        const unpaid = invoices.filter(inv => inv.status !== 'Paid')
+        const paid   = invoices.filter(inv => inv.status === 'Paid')
+
+        const InvoiceTable = ({ rows }: { rows: Invoice[] }) => (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoice #</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dog</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {rows.map(inv => (
+                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-[#2d6a4f] hover:underline">
+                        #{inv.invoice_number}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{inv.dog_name || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{inv.client_name || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{fmt(inv.due_date)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">£{inv.total.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+
+        return (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Unpaid <span className="text-amber-500">({unpaid.length})</span>
+              </h2>
+              {unpaid.length === 0
+                ? <p className="text-sm text-gray-400 py-4 text-center bg-white rounded-2xl border border-gray-100">No unpaid invoices</p>
+                : <InvoiceTable rows={unpaid} />
+              }
+            </div>
+            {paid.length > 0 && (
+              <div>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                  Paid <span className="text-green-600">({paid.length})</span>
+                </h2>
+                <InvoiceTable rows={paid} />
+              </div>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
