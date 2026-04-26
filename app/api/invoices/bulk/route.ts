@@ -164,7 +164,7 @@ export async function POST(req: Request) {
             <tr><td style="padding:8px;background:#f9f9f9;font-weight:bold;width:40%">Type</td><td style="padding:8px;background:#f9f9f9">${booking.booking_type}</td></tr>
             <tr><td style="padding:8px;font-weight:bold">Date${isBoarding ? 's' : ''}</td><td style="padding:8px">${dateStr}</td></tr>
           </table>
-          <p style="background:#f0fdf4;border-left:4px solid #16a34a;padding:10px 14px;border-radius:4px;color:#14532d">💳 <strong>Invoice #${invoiceNumber}</strong> — payment of <strong>£${total.toFixed(2)}</strong> is due by <strong>${dueStr}</strong>. You can pay by bank transfer or bring cash on the day.</p>
+          <p style="background:#f0fdf4;border-left:4px solid #16a34a;padding:10px 14px;border-radius:4px;color:#14532d">💳 <strong>Invoice #${invoiceNumber}</strong> — payment of <strong>£${total.toFixed(2)}</strong> is due by <strong>${dueStr}</strong>. No need to pay right now — payment is due on the day of the session. You can pay by bank transfer before the date or bring cash on the day.</p>
           <p>If you have any questions please don't hesitate to get in touch.</p>
           <p>Many thanks,<br/><strong>${businessName}</strong><br/>${config.businessPhone ?? ''}</p>
         </div>
