@@ -199,7 +199,7 @@ export async function clearPublicDayEvents(calendarId: string, date: string): Pr
   }
 }
 
-// Create a single all-day event on the public calendar
+// Create a single all-day event on the public calendar, with retry on rate limit
 export async function createPublicDayEvent(
   calendarId: string,
   date: string,
@@ -207,19 +207,32 @@ export async function createPublicDayEvent(
   description: string,
   colorId: string
 ): Promise<void> {
-  try {
-    const calendar = google.calendar({ version: 'v3', auth: getAuth() })
-    await calendar.events.insert({
-      calendarId,
-      requestBody: {
-        summary: title,
-        description,
-        colorId,
-        start: { date },
-        end: { date: exclusiveEnd(date) },
-      },
-    })
-  } catch (e) {
-    console.error('Public calendar create error:', e)
+  const calendar = google.calendar({ version: 'v3', auth: getAuth() })
+  const maxAttempts = 4
+  let delay = 1000
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await calendar.events.insert({
+        calendarId,
+        requestBody: {
+          summary: title,
+          description,
+          colorId,
+          start: { date },
+          end: { date: exclusiveEnd(date) },
+        },
+      })
+      return
+    } catch (e: any) {
+      const isRateLimit = e?.code === 403 || e?.status === 403
+      if (isRateLimit && attempt < maxAttempts) {
+        console.warn(`[Public Calendar] Rate limited on ${date}, retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`)
+        await new Promise(r => setTimeout(r, delay))
+        delay *= 2
+      } else {
+        console.error('Public calendar create error:', e)
+        return
+      }
+    }
   }
 }

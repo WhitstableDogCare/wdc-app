@@ -81,8 +81,9 @@ export async function syncPublicCalendarDays(startDate: string, endDate: string)
 
   const dates = datesInRange(startDate, endDate)
 
-  // Run sequentially to avoid rate-limit issues
+  // Run sequentially with a small delay to avoid rate-limit issues
   for (const date of dates) {
     await syncOneDay(calendarId, date)
+    await new Promise(r => setTimeout(r, 300))
   }
 }
