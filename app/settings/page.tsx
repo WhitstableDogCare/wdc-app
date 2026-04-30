@@ -49,6 +49,10 @@ export default function SettingsPage() {
     businessPhone: '', paymentInfo: '', gmailAppPassword: '',
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [newAppPassword, setNewAppPassword] = useState('')
+  const [showAppPassword, setShowAppPassword] = useState(false)
+  const [savingAppPassword, setSavingAppPassword] = useState(false)
+  const [savedAppPassword, setSavedAppPassword] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -111,6 +115,20 @@ export default function SettingsPage() {
       .then(d => setHasStoredKey(d.hasKey))
       .catch(() => setHasStoredKey(false))
   }, [])
+
+  const handleSaveAppPassword = async () => {
+    if (!newAppPassword.trim()) return
+    setSavingAppPassword(true)
+    await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appPassword: newAppPassword.trim() }),
+    })
+    setNewAppPassword('')
+    setSavingAppPassword(false)
+    setSavedAppPassword(true)
+    setTimeout(() => setSavedAppPassword(false), 2500)
+  }
 
   const handleSyncPublicCal = async () => {
     setSyncingPublicCal(true)
@@ -517,6 +535,32 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* App Password */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <h2 className="font-semibold text-gray-800 border-b border-gray-100 pb-3">App Password</h2>
+        <p className="text-xs text-gray-500">Change the password used to log in to this app.</p>
+        <div className="relative">
+          <input
+            type={showAppPassword ? 'text' : 'password'}
+            value={newAppPassword}
+            onChange={e => setNewAppPassword(e.target.value)}
+            placeholder="New password"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] pr-16"
+          />
+          <button type="button" onClick={() => setShowAppPassword(p => !p)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
+            {showAppPassword ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleSaveAppPassword} disabled={savingAppPassword || !newAppPassword.trim()}
+            className="bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-50">
+            {savingAppPassword ? 'Saving...' : 'Update Password'}
+          </button>
+          {savedAppPassword && <span className="text-green-600 text-sm">Password updated!</span>}
+        </div>
       </div>
 
       {/* Business Details */}

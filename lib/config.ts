@@ -21,6 +21,7 @@ interface Config {
   publicGoogleCalendarId?: string
   personalCalendarIcalUrl?: string
   familyCalendarIcalUrl?: string
+  appPassword?: string
 }
 
 export function readConfig(): Config {

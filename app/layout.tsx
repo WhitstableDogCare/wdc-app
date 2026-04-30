@@ -9,6 +9,12 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Whitstable Dog Care',
   description: 'Dog profiles and management for Whitstable Dog Care',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'WDC',
+  },
 }
 
 export default function RootLayout({
@@ -18,6 +24,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/wdc-logo.png" />
+      </head>
       <body className={inter.className}>
         {/* Runs before React hydrates to prevent dark mode flash */}
         <script
@@ -26,17 +35,17 @@ export default function RootLayout({
           }}
         />
         <header className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-3 flex-shrink-0">
               <img src="/wdc-logo.png" alt="Whitstable Dog Care" width={56} height={56} className="rounded-full" />
-              <span className="font-bold text-lg tracking-tight text-[#2d2d4e]">Whitstable Dog Care</span>
+              <span className="font-bold text-lg tracking-tight text-[#2d2d4e] hidden lg:block">Whitstable Dog Care</span>
             </Link>
-            <nav className="flex items-center gap-4 text-sm font-medium text-[#2d6a4f]">
-              <Link href="/" className="hover:text-[#245a41] transition-colors">Dogs</Link>
-              <Link href="/bookings" className="hover:text-[#245a41] transition-colors">Bookings & Invoices</Link>
-              <Link href="/calendar" className="hover:text-[#245a41] transition-colors">Calendar</Link>
-              <Link href="/dashboard" className="hover:text-[#245a41] transition-colors">Dashboard</Link>
-              <Link href="/settings" className="hover:text-[#245a41] transition-colors">Settings</Link>
+            <nav className="flex items-center gap-3 text-sm font-medium text-[#2d6a4f] flex-wrap justify-end">
+              <Link href="/" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Dogs</Link>
+              <Link href="/bookings" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Bookings & Invoices</Link>
+              <Link href="/calendar" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Calendar</Link>
+              <Link href="/dashboard" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Dashboard</Link>
+              <Link href="/settings" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Settings</Link>
               <ThemeToggle />
             </nav>
           </div>

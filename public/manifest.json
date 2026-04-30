@@ -1,0 +1,17 @@
+{
+  "name": "Whitstable Dog Care",
+  "short_name": "WDC",
+  "description": "Dog profiles and management for Whitstable Dog Care",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2d6a4f",
+  "icons": [
+    {
+      "src": "/wdc-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
