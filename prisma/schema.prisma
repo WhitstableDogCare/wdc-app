@@ -42,6 +42,7 @@ model Dog {
   equipment_provided        String?
   equipment_wdc             String?
   notes                     String?
+  is_solo                   Boolean           @default(false)
   archived                  Boolean           @default(false)
   created_at                DateTime          @default(now())
   updated_at                DateTime          @updatedAt

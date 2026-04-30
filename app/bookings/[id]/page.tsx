@@ -100,8 +100,30 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
   const handleCancel = async () => {
     if (!confirm('Cancel this booking? This will also remove it from Google Calendar.')) return
+
+    let voidInvoice = false
+    if (booking?.invoice && booking.invoice.status !== 'Void') {
+      voidInvoice = confirm(
+        `This booking has invoice #${booking.invoice.invoice_number} (£${booking.invoice.total.toFixed(2)}) which is currently ${booking.invoice.status}.\n\nDo you also want to mark the invoice as Void?`
+      )
+    }
+
     setCancelling(true)
-    await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
+    const data = await res.json()
+
+    if (voidInvoice && booking?.invoice) {
+      await fetch(`/api/invoices/${booking.invoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Void' }),
+      })
+    }
+
+    if (data.calendarWarning) {
+      alert(data.calendarWarning)
+    }
+
     router.push('/bookings')
   }
 
@@ -209,8 +231,14 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             }
             {booking.confirmation_sent && <span>✓ Confirmation sent</span>}
             {booking.invoice && (
-              <span className={`px-2 py-0.5 rounded-full font-medium ${booking.invoice.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                {booking.invoice.status === 'Paid' ? '✓ Paid' : `Unpaid — £${booking.invoice.total.toFixed(2)}`}
+              <span className={`px-2 py-0.5 rounded-full font-medium ${
+                booking.invoice.status === 'Paid' ? 'bg-green-100 text-green-700'
+                : booking.invoice.status === 'Void' ? 'bg-gray-100 text-gray-500'
+                : 'bg-amber-100 text-amber-700'
+              }`}>
+                {booking.invoice.status === 'Paid' ? '✓ Paid'
+                  : booking.invoice.status === 'Void' ? '✗ Void'
+                  : `Unpaid — £${booking.invoice.total.toFixed(2)}`}
               </span>
             )}
           </div>

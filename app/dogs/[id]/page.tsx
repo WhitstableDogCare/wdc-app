@@ -43,6 +43,7 @@ interface Dog {
   equipment_provided: string | null
   equipment_wdc: string | null
   notes: string | null
+  is_solo: boolean
   archived: boolean
   owners: Owner[]
   vets: Vet[]
@@ -289,7 +290,10 @@ function DogConflictsSection({ dogId, allDogs }: { dogId: number; allDogs: { id:
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/dogs/${dogId}/conflicts`).then(r => r.json()).then(setConflicts)
+    fetch(`/api/dogs/${dogId}/conflicts`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setConflicts(data) })
+      .catch(() => {})
   }, [dogId])
 
   const conflictingIds = new Set([dogId, ...conflicts.map(c => c.dog.id)])
@@ -495,8 +499,12 @@ function DogInvoicesTab({ dogId }: { dogId: number }) {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {inv.status === 'Paid' ? '✓ Paid' : 'Unpaid'}
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  inv.status === 'Paid' ? 'bg-green-100 text-green-700'
+                  : inv.status === 'Void' ? 'bg-gray-100 text-gray-500'
+                  : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {inv.status === 'Paid' ? '✓ Paid' : inv.status === 'Void' ? '✗ Void' : 'Unpaid'}
                 </span>
                 <span className="font-semibold text-gray-800 text-sm">£{inv.total.toFixed(2)}</span>
               </div>
@@ -849,6 +857,19 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
     setArchiving(false)
   }
 
+  const handleToggleSolo = async () => {
+    if (!dog) return
+    const newVal = !dog.is_solo
+    if (newVal && !confirm(`Mark ${dog.name} as Solo? They will not be bookable on the same day as other Solo dogs.`)) return
+    const res = await fetch(`/api/dogs/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_solo: newVal }),
+    })
+    const updated = await res.json()
+    setDog(updated)
+  }
+
   const handleSaveNotes = async () => {
     setSavingNotes(true)
     await fetch(`/api/dogs/${id}`, {
@@ -968,9 +989,20 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
                     {dog.energy_level} energy
                   </span>
                 )}
+                {dog.is_solo && (
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    🐶 Solo
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleToggleSolo}
+                className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${dog.is_solo ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}
+              >
+                {dog.is_solo ? '🐶 Solo' : 'Set Solo'}
+              </button>
               {dog.archived ? (
                 <button
                   onClick={handleUnarchive}

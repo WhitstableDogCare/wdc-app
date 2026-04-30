@@ -34,6 +34,7 @@ function NewBookingInner() {
   const [error, setError] = useState<string | null>(null)
   const [capacityWarning, setCapacityWarning] = useState<string | null>(null)
   const [conflictWarnings, setConflictWarnings] = useState<{ dogName: string; notes: string | null }[]>([])
+  const [soloWarnings, setSoloWarnings] = useState<{ dogName: string }[]>([])
 
   function nextOccurrence(dow: number): string {
     const d = new Date()
@@ -83,19 +84,25 @@ function NewBookingInner() {
   }, [startDate, endDate, bookingType])
 
   useEffect(() => {
-    if (!selectedDogId || !startDate) { setConflictWarnings([]); return }
+    if (!selectedDogId || !startDate) { setConflictWarnings([]); setSoloWarnings([]); return }
     const end = bookingType === 'Boarding' ? endDate : startDate
-    if (!end) { setConflictWarnings([]); return }
+    if (!end) { setConflictWarnings([]); setSoloWarnings([]); return }
     fetch(`/api/bookings/conflicts?dogId=${selectedDogId}&start=${startDate}&end=${end}`)
       .then(r => r.json())
       .then(setConflictWarnings)
       .catch(() => setConflictWarnings([]))
+    fetch(`/api/bookings/solo-conflicts?dogId=${selectedDogId}&start=${startDate}&end=${end}`)
+      .then(r => r.json())
+      .then(setSoloWarnings)
+      .catch(() => setSoloWarnings([]))
   }, [selectedDogId, startDate, endDate, bookingType])
 
   const handleSubmit = async () => {
     if (!dogName) { setError('Dog name is required.'); return }
     if (!isRecurring && !startDate) { setError('Start date is required.'); return }
     if (!isRecurring && bookingType === 'Boarding' && !endDate) { setError('Pick-up date is required for boarding.'); return }
+    if (!isRecurring && bookingType === 'Boarding' && endDate <= startDate) { setError('Pick-up date must be after the drop-off date.'); return }
+    if (!isRecurring && bookingType === 'Daycare' && dropOffTime && pickUpTime && pickUpTime <= dropOffTime) { setError('Pick-up time must be after the drop-off time.'); return }
     setSaving(true)
     setError(null)
     const effectiveStartDate = isRecurring ? nextOccurrence(dayOfWeek) : startDate
@@ -211,7 +218,15 @@ function NewBookingInner() {
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
                 {bookingType === 'Boarding' ? 'Drop-off Date' : 'Date'}
               </label>
-              <input type="date" value={startDate} min={today} onChange={e => setStartDate(e.target.value)}
+              <input type="date" value={startDate} min={today} onChange={e => {
+                const newStart = e.target.value
+                setStartDate(newStart)
+                if (bookingType === 'Boarding' && newStart && endDate <= newStart) {
+                  const d = new Date(newStart + 'T12:00:00')
+                  d.setDate(d.getDate() + 1)
+                  setEndDate(d.toISOString().split('T')[0])
+                }
+              }}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
             </div>
             {bookingType === 'Boarding' && (
@@ -228,18 +243,24 @@ function NewBookingInner() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Drop-off Time</label>
-            <input type="time" value={dropOffTime} onChange={e => setDropOffTime(e.target.value)}
+            <input type="time" step={900} value={dropOffTime} onChange={e => setDropOffTime(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Pick-up Time</label>
-            <input type="time" value={pickUpTime} onChange={e => setPickUpTime(e.target.value)}
+            <input type="time" step={900} value={pickUpTime} onChange={e => setPickUpTime(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
           </div>
         </div>
 
         {capacityWarning && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-3 text-sm">{capacityWarning}</div>
+        )}
+        {soloWarnings.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm">
+            <p className="font-medium">⚠️ Solo dog conflict — {soloWarnings.map(w => w.dogName).join(', ')} {soloWarnings.length === 1 ? 'is' : 'are'} also booked on these dates. Solo dogs cannot share dates with other Solo dogs.</p>
+            <p className="mt-0.5 text-amber-600">You can still proceed if you&apos;re sure this is correct.</p>
+          </div>
         )}
         {conflictWarnings.map((w, i) => (
           <div key={i} className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">

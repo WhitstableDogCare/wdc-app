@@ -84,10 +84,13 @@ export async function PATCH(
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
-    const { archived } = await request.json()
+    const body = await request.json()
     const dog = await prisma.dog.update({
       where: { id },
-      data: { archived },
+      data: {
+        ...(body.archived !== undefined ? { archived: body.archived } : {}),
+        ...(body.is_solo !== undefined  ? { is_solo: body.is_solo }   : {}),
+      },
     })
     return NextResponse.json(dog)
   } catch (error) {

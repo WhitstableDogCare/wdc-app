@@ -85,8 +85,14 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const existing = await prisma.booking.findUnique({ where: { id: parseInt(id) } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  let calendarWarning: string | undefined
   if (existing.google_event_id) {
-    await deleteCalendarEvent(existing.google_event_id)
+    try {
+      await deleteCalendarEvent(existing.google_event_id)
+    } catch (e) {
+      console.error('Google Calendar delete error:', e)
+      calendarWarning = 'Booking cancelled, but the Google Calendar event could not be removed. Please delete it manually.'
+    }
   }
 
   await prisma.booking.update({ where: { id: parseInt(id) }, data: { status: 'Cancelled' } })
@@ -99,5 +105,5 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     )
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, calendarWarning })
 }

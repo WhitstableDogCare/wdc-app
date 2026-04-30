@@ -117,7 +117,14 @@ async function createInvoiceAndSendEmail(booking: {
   const services = preset
     ? buildServiceLines(preset, { start_date: booking.start_date, end_date: booking.end_date }, randomUUID)
     : []
-  const total = services.reduce((sum, s) => sum + serviceAmount(s), 0)
+  const subtotal = services.reduce((sum, s) => sum + serviceAmount(s), 0)
+
+  // Auto-apply 10% discount for boarding stays of 7+ nights
+  const nights = isBoarding && booking.end_date
+    ? Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / 86400000)
+    : 0
+  const applyDiscount = nights >= 7
+  const total = applyDiscount ? subtotal * 0.9 : subtotal
 
   // Allocate invoice number
   const nextNum = config.nextInvoiceNumber ?? 1
@@ -139,6 +146,7 @@ async function createInvoiceAndSendEmail(booking: {
       services: JSON.stringify(services),
       invoice_date: new Date().toISOString().split('T')[0],
       due_date: booking.start_date,
+      apply_discount: applyDiscount,
       total,
       status: 'Unpaid',
     },
@@ -221,7 +229,7 @@ export async function GET(req: NextRequest) {
       ...(dogId ? { dog_id: parseInt(dogId) } : {}),
     },
     include: {
-      dog: { select: { id: true, name: true, photo_path: true } },
+      dog: { select: { id: true, name: true, photo_path: true, is_solo: true } },
       invoice: { select: { id: true, invoice_number: true, status: true, total: true } },
     },
     orderBy: { start_date: 'asc' },

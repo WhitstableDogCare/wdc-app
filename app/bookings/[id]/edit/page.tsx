@@ -49,6 +49,7 @@ export default function EditBookingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [soloWarnings, setSoloWarnings] = useState<{ dogName: string }[]>([])
 
   useEffect(() => {
     Promise.all([
@@ -83,9 +84,20 @@ export default function EditBookingPage() {
     setOwnerEmail(dog.owners[0]?.email ?? '')
   }, [selectedDogId, dogs])
 
+  useEffect(() => {
+    if (!selectedDogId || !startDate) { setSoloWarnings([]); return }
+    const end = bookingType === 'Boarding' ? endDate : startDate
+    fetch(`/api/bookings/solo-conflicts?dogId=${selectedDogId}&start=${startDate}&end=${end}&excludeBookingId=${id}`)
+      .then(r => r.json())
+      .then(setSoloWarnings)
+      .catch(() => setSoloWarnings([]))
+  }, [selectedDogId, startDate, endDate, bookingType, id])
+
   const handleSubmit = async () => {
     if (!dogName) { setError('Dog name is required.'); return }
     if (!isRecurring && !startDate) { setError('Start date is required.'); return }
+    if (!isRecurring && bookingType === 'Boarding' && endDate <= startDate) { setError('Pick-up date must be after the drop-off date.'); return }
+    if (!isRecurring && bookingType === 'Daycare' && dropOffTime && pickUpTime && pickUpTime <= dropOffTime) { setError('Pick-up time must be after the drop-off time.'); return }
     setSaving(true)
     setError(null)
     const res = await fetch(`/api/bookings/${id}`, {
@@ -185,7 +197,15 @@ export default function EditBookingPage() {
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
                 {bookingType === 'Boarding' ? 'Drop-off Date' : 'Date'}
               </label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              <input type="date" value={startDate} onChange={e => {
+                const newStart = e.target.value
+                setStartDate(newStart)
+                if (bookingType === 'Boarding' && newStart && endDate <= newStart) {
+                  const d = new Date(newStart + 'T12:00:00')
+                  d.setDate(d.getDate() + 1)
+                  setEndDate(d.toISOString().split('T')[0])
+                }
+              }}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
             </div>
             {bookingType === 'Boarding' && (
@@ -202,12 +222,12 @@ export default function EditBookingPage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Drop-off Time</label>
-            <input type="time" value={dropOffTime} onChange={e => setDropOffTime(e.target.value)}
+            <input type="time" step={900} value={dropOffTime} onChange={e => setDropOffTime(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Pick-up Time</label>
-            <input type="time" value={pickUpTime} onChange={e => setPickUpTime(e.target.value)}
+            <input type="time" step={900} value={pickUpTime} onChange={e => setPickUpTime(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
           </div>
         </div>
@@ -231,6 +251,12 @@ export default function EditBookingPage() {
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
         </div>
 
+        {soloWarnings.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm">
+            <p className="font-medium">⚠️ Solo dog conflict — {soloWarnings.map(w => w.dogName).join(', ')} {soloWarnings.length === 1 ? 'is' : 'are'} also booked on these dates. Solo dogs cannot share dates with other Solo dogs.</p>
+            <p className="mt-0.5 text-amber-600">You can still proceed if you&apos;re sure this is correct.</p>
+          </div>
+        )}
         {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
 
         <div className="flex gap-3 pt-2">

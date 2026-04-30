@@ -19,7 +19,7 @@ interface Booking {
   confirmation_sent: boolean
   is_recurring: boolean
   day_of_week: number | null
-  dog: { id: number; name: string; photo_path: string | null } | null
+  dog: { id: number; name: string; photo_path: string | null; is_solo: boolean } | null
   // virtual field used when expanding recurring occurrences
   _virtual_date?: string
 }
@@ -35,6 +35,7 @@ interface Invoice {
   id: number
   invoice_number: string
   invoice_date: string | null
+  due_date: string | null
   dog_name: string | null
   client_name: string | null
   total: number
@@ -47,7 +48,7 @@ function formatDate(d: string) {
 
 function fmtInvoiceDate(dateStr: string | null): string {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function nightsBetween(start: string, end: string) {
@@ -92,6 +93,9 @@ function BookingCard({ booking }: { booking: Booking }) {
             </span>
             {booking.is_recurring && (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">🔁 Recurring</span>
+            )}
+            {booking.dog?.is_solo && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">🐶 Solo</span>
             )}
             {booking.rate_type === 'Peak' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">Peak</span>}
             {isCancelled && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">Cancelled</span>}
@@ -395,8 +399,65 @@ function InvoicesTab() {
       .catch(() => setLoading(false))
   }, [])
 
+  const InvoiceTable = ({ rows }: { rows: Invoice[] }) => (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-100">
+            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoice #</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dog</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due</th>
+            <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(inv => (
+            <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-3">
+                <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-[#2d6a4f] hover:underline">
+                  #{inv.invoice_number}
+                </Link>
+              </td>
+              <td className="px-4 py-3 font-medium text-gray-800">{inv.dog_name || '—'}</td>
+              <td className="px-4 py-3 text-gray-600">{inv.client_name || '—'}</td>
+              <td className="px-4 py-3 text-gray-600">{fmtInvoiceDate(inv.due_date)}</td>
+              <td className="px-4 py-3 text-right font-semibold text-gray-900">£{inv.total.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+
+  const unpaid = invoices.filter(inv => inv.status !== 'Paid' && inv.status !== 'Void')
+  const paid   = invoices.filter(inv => inv.status === 'Paid').sort((a, b) => (b.due_date ?? '').localeCompare(a.due_date ?? ''))
+
   return (
     <>
+      {/* Tab toolbar */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500">
+          {!loading && invoices.length > 0 && (
+            <span><span className="text-amber-600 font-semibold">{unpaid.length}</span> unpaid · <span className="text-green-600 font-semibold">{paid.length}</span> paid</span>
+          )}
+        </p>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/invoices/bulk"
+            className="border border-[#2d6a4f] text-[#2d6a4f] px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-green-50 transition-colors"
+          >
+            📤 Send Invoices
+          </Link>
+          <Link
+            href="/invoices/new"
+            className="bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#245a41] transition-colors"
+          >
+            + New Invoice
+          </Link>
+        </div>
+      </div>
+
       {loading ? (
         <div className="text-center py-16 text-gray-500">Loading...</div>
       ) : invoices.length === 0 ? (
@@ -406,39 +467,24 @@ function InvoicesTab() {
           <p className="text-sm mt-1">Create your first invoice to get started</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoice #</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dog</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Owner</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map(inv => (
-                <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link href={`/invoices/${inv.id}`} className="font-mono font-semibold text-[#2d6a4f] hover:underline">
-                      #{inv.invoice_number}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{fmtInvoiceDate(inv.invoice_date)}</td>
-                  <td className="px-4 py-3 font-medium text-gray-800">{inv.dog_name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{inv.client_name || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {inv.status === 'Paid' ? '✓ Paid' : 'Unpaid'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900">£{inv.total.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Unpaid <span className="text-amber-500">({unpaid.length})</span>
+            </h2>
+            {unpaid.length === 0
+              ? <p className="text-sm text-gray-400 py-4 text-center bg-white rounded-2xl border border-gray-100">No unpaid invoices 🎉</p>
+              : <InvoiceTable rows={unpaid} />
+            }
+          </div>
+          {paid.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Paid <span className="text-green-600">({paid.length})</span>
+              </h2>
+              <InvoiceTable rows={paid} />
+            </div>
+          )}
         </div>
       )}
     </>
@@ -453,16 +499,10 @@ export default function BookingsInvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Bookings & Invoices</h1>
-        <div className="flex gap-2">
-          <Link href="/bookings/new"
-            className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#245a41] transition-colors">
-            + New Booking
-          </Link>
-          <Link href="/invoices/new"
-            className="bg-white border border-[#2d6a4f] text-[#2d6a4f] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#2d6a4f]/5 transition-colors">
-            + New Invoice
-          </Link>
-        </div>
+        <Link href="/bookings/new"
+          className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#245a41] transition-colors">
+          + New Booking
+        </Link>
       </div>
 
       {/* Sub-tabs */}
