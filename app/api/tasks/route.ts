@@ -15,6 +15,48 @@ function getAuth() {
   return oauth2
 }
 
+// GET /api/tasks — fetch incomplete tasks due today across all task lists
+export async function GET() {
+  try {
+    const tasksApi = google.tasks({ version: 'v1', auth: getAuth() })
+
+    // Google Tasks stores due dates as midnight UTC (e.g. 2026-04-27T00:00:00.000Z)
+    // We compare the date portion directly to avoid timezone/exclusivity issues with the API filter
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' }) // YYYY-MM-DD
+
+    const listsRes = await tasksApi.tasklists.list({ maxResults: 20 })
+    const lists = listsRes.data.items ?? []
+
+    const result: { id: string; title: string; due: string | null; listTitle: string; notes: string | null }[] = []
+
+    for (const list of lists) {
+      if (!list.id) continue
+      const tasksRes = await tasksApi.tasks.list({
+        tasklist: list.id,
+        showCompleted: false,
+        showHidden: false,
+      })
+      for (const task of tasksRes.data.items ?? []) {
+        if (task.status === 'completed' || !task.title || !task.due) continue
+        const taskDate = task.due.split('T')[0]
+        if (taskDate !== todayStr) continue
+        result.push({
+          id: task.id ?? '',
+          title: task.title,
+          due: taskDate,
+          listTitle: list.title ?? '',
+          notes: task.notes ?? null,
+        })
+      }
+    }
+
+    return NextResponse.json(result)
+  } catch (e) {
+    console.error('Google Tasks fetch error:', e)
+    return NextResponse.json([]) // Fail gracefully — don't break the dashboard
+  }
+}
+
 // POST /api/tasks — create a task in the default task list
 export async function POST(req: NextRequest) {
   try {

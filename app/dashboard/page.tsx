@@ -10,6 +10,7 @@ interface Invoice {
   invoice_number: string
   invoice_date: string | null
   due_date: string | null
+  paid_date: string | null
   dog_name: string | null
   client_name: string | null
   total: number
@@ -24,6 +25,14 @@ interface CalEvent {
   start: string
   end: string
   allDay: boolean
+}
+
+interface GoogleTask {
+  id: string
+  title: string
+  due: string | null
+  listTitle: string
+  notes: string | null
 }
 
 interface DogStats {
@@ -125,6 +134,8 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<CalEvent[]>([])
   const [todayBookings, setTodayBookings] = useState<{ dogName: string; dogId: number | null; visitType: VisitType }[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [todayTasks, setTodayTasks] = useState<GoogleTask[]>([])
+  const [pendingInvoiceCount, setPendingInvoiceCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -133,10 +144,14 @@ export default function DashboardPage() {
       fetch('/api/calendar').then(r => r.json()),
       fetch('/api/bookings').then(r => r.json()),
       fetch('/api/invoices').then(r => r.json()),
-    ]).then(([dash, cal, bookings, invs]) => {
+      fetch('/api/tasks').then(r => r.json()).catch(() => []),
+      fetch('/api/invoices/bulk').then(r => r.json()).catch(() => []),
+    ]).then(([dash, cal, bookings, invs, tasks, pending]) => {
       setDogStats(dash.dogs)
       setEvents(Array.isArray(cal) ? cal : [])
       setInvoices(Array.isArray(invs) ? invs : [])
+      setTodayTasks(Array.isArray(tasks) ? tasks : [])
+      setPendingInvoiceCount(Array.isArray(pending) ? pending.length : 0)
       const today = new Date()
       const todayStr = today.toISOString().split('T')[0]
       const active = (Array.isArray(bookings) ? bookings : []).filter((b: { start_date: string; end_date: string | null; status: string }) =>
@@ -198,8 +213,8 @@ export default function DashboardPage() {
     else if (e.visitType === 'Daycare') monthData[key].daycare += Math.max(1, nightsBetween(e.start, e.end))
   }
   for (const inv of invoices) {
-    if (!inv.invoice_date) continue
-    const key = new Date(inv.invoice_date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+    if (inv.status !== 'Paid' || !inv.paid_date) continue
+    const key = new Date(inv.paid_date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
     if (!monthData[key]) continue
     monthData[key].income += inv.total
   }
@@ -223,7 +238,7 @@ export default function DashboardPage() {
     return invoices.filter(i => i.invoice_date && i.invoice_date >= s && i.invoice_date < e)
   }
   function taxYearStats(start: Date) {
-    const tyInvs = taxYearInvoices(start)
+    const tyInvs = taxYearInvoices(start).filter(i => i.status !== 'Void')
     return {
       invoices: tyInvs,
       total:   tyInvs.reduce((s, i) => s + i.total, 0),
@@ -244,7 +259,7 @@ export default function DashboardPage() {
 
   // Invoice stats
   const todayStr2 = now.toISOString().split('T')[0]
-  const unpaidInvoices = invoices.filter(i => i.status !== 'Paid')
+  const unpaidInvoices = invoices.filter(i => i.status !== 'Paid' && i.status !== 'Void')
   const overdueInvoices = unpaidInvoices.filter(i => i.due_date && i.due_date < todayStr2)
   const currentTYStart = getTaxYearStart(now)
   const currentTY      = taxYearStats(currentTYStart)
@@ -259,20 +274,41 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
 
       {/* Today */}
-      {todayGuests.length > 0 && (
+      {(todayGuests.length > 0 || todayTasks.length > 0) && (
         <div className="bg-[#2d6a4f] text-white rounded-2xl p-5">
           <h2 className="font-bold text-lg mb-3">🐾 With You Today</h2>
-          <div className="flex flex-wrap gap-2">
-            {todayGuests.map(e => (
-              <Link
-                key={e.uid ?? e.dogName}
-                href={e.dogId ? `/dogs/${e.dogId}` : '#'}
-                className="bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-full text-sm font-medium"
-              >
-                {e.visitType.startsWith('Boarding') ? '🌙' : '☀️'} {e.dogName}
-              </Link>
-            ))}
-          </div>
+          {todayGuests.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {todayGuests.map(e => (
+                <Link
+                  key={e.uid ?? e.dogName}
+                  href={e.dogId ? `/dogs/${e.dogId}` : '#'}
+                  className="bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-full text-sm font-medium"
+                >
+                  {e.visitType.startsWith('Boarding') ? '🌙' : '☀️'} {e.dogName}
+                </Link>
+              ))}
+            </div>
+          )}
+          {todayTasks.length > 0 && (
+            <div className={`${todayGuests.length > 0 ? 'mt-4 pt-4 border-t border-white/20' : ''}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/60 mb-2">📋 Tasks Due Today</p>
+              <div className="space-y-1.5">
+                {todayTasks.map(task => (
+                  <div key={task.id} className="flex items-start gap-2 text-sm">
+                    <span className="text-white/40 mt-0.5">•</span>
+                    <div>
+                      <span className="font-medium">{task.title}</span>
+                      {task.listTitle && task.listTitle !== 'My Tasks' && (
+                        <span className="text-white/50 text-xs ml-2">{task.listTitle}</span>
+                      )}
+                      {task.notes && <p className="text-white/60 text-xs mt-0.5">{task.notes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -295,6 +331,18 @@ export default function DashboardPage() {
           <StatCard label="New Clients"     value={ds.newThisYear}     color="green"  />
         </div>
       </div>
+
+      {/* Pending invoices nudge */}
+      {pendingInvoiceCount > 0 && (
+        <Link href="/invoices/bulk"
+          className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 hover:bg-amber-100 transition-colors">
+          <div>
+            <p className="font-semibold text-amber-800">📤 {pendingInvoiceCount} booking{pendingInvoiceCount !== 1 ? 's' : ''} need{pendingInvoiceCount === 1 ? 's' : ''} invoicing</p>
+            <p className="text-xs text-amber-600 mt-0.5">Upcoming confirmed bookings without an invoice</p>
+          </div>
+          <span className="text-amber-600 text-sm font-medium">Send Invoices →</span>
+        </Link>
+      )}
 
       {/* Invoices */}
       {invoices.length > 0 && (
