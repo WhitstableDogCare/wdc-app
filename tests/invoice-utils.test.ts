@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { inferPresetFromTimes, buildServiceLines, SERVICE_PRESETS } from '../lib/invoice-utils'
+import {
+  inferPresetFromTimes, buildServiceLines, SERVICE_PRESETS,
+  addDays, calcNights, serviceAmount, groupConsecutive,
+  type ServiceLine,
+} from '../lib/invoice-utils'
 
 // Stable uid for tests — no randomness
 const uid = () => 'test-id'
@@ -140,6 +144,151 @@ describe('buildServiceLines', () => {
       expect(lines[0].rate).toBe(50) // peak rate for Long Day Care
     })
 
+  })
+
+})
+
+// ─── addDays ─────────────────────────────────────────────────────────────────
+
+describe('addDays', () => {
+
+  it('adds 1 day correctly', () => {
+    expect(addDays('2026-04-21', 1)).toBe('2026-04-22')
+  })
+
+  it('adds 7 days correctly', () => {
+    expect(addDays('2026-04-21', 7)).toBe('2026-04-28')
+  })
+
+  it('handles month boundary', () => {
+    expect(addDays('2026-04-30', 1)).toBe('2026-05-01')
+  })
+
+  it('handles year boundary', () => {
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+  })
+
+  it('subtracts days with a negative value', () => {
+    expect(addDays('2026-04-21', -1)).toBe('2026-04-20')
+  })
+
+  it('returns the same date when adding 0 days', () => {
+    expect(addDays('2026-04-21', 0)).toBe('2026-04-21')
+  })
+
+})
+
+// ─── calcNights ───────────────────────────────────────────────────────────────
+
+describe('calcNights', () => {
+
+  const makeLine = (overrides: Partial<ServiceLine>): ServiceLine => ({
+    id: 'x', type: 'boarding', description: '', startDate: '', endDate: '', quantity: 1, rate: 50,
+    ...overrides,
+  })
+
+  it('returns 0 for a boarding line where start equals end', () => {
+    const line = makeLine({ startDate: '2026-04-21', endDate: '2026-04-21' })
+    expect(calcNights(line)).toBe(0)
+  })
+
+  it('returns correct night count for a 2-night boarding stay', () => {
+    const line = makeLine({ startDate: '2026-04-21', endDate: '2026-04-23' })
+    expect(calcNights(line)).toBe(2)
+  })
+
+  it('returns correct night count for a 7-night boarding stay', () => {
+    const line = makeLine({ startDate: '2026-04-21', endDate: '2026-04-28' })
+    expect(calcNights(line)).toBe(7)
+  })
+
+  it('falls back to quantity when boarding endDate is empty string', () => {
+    const line = makeLine({ type: 'boarding', startDate: '2026-04-21', endDate: '', quantity: 3 })
+    expect(calcNights(line)).toBe(3)
+  })
+
+  it('always returns quantity for daycare regardless of dates', () => {
+    const line = makeLine({ type: 'daycare', quantity: 4, startDate: '2026-04-21', endDate: '2026-04-25' })
+    expect(calcNights(line)).toBe(4)
+  })
+
+  it('never returns a negative value', () => {
+    // end before start — treated as 0
+    const line = makeLine({ startDate: '2026-04-25', endDate: '2026-04-21' })
+    expect(calcNights(line)).toBe(0)
+  })
+
+})
+
+// ─── serviceAmount ────────────────────────────────────────────────────────────
+
+describe('serviceAmount', () => {
+
+  it('returns nights × rate for a boarding line', () => {
+    const line: ServiceLine = { id: 'x', type: 'boarding', description: '', startDate: '2026-04-21', endDate: '2026-04-24', quantity: 1, rate: 50 }
+    expect(serviceAmount(line)).toBe(150) // 3 nights × £50
+  })
+
+  it('returns quantity × rate for a daycare line', () => {
+    const line: ServiceLine = { id: 'x', type: 'daycare', description: '', startDate: '2026-04-21', endDate: '', quantity: 3, rate: 30 }
+    expect(serviceAmount(line)).toBe(90) // 3 days × £30
+  })
+
+  it('returns 0 when boarding start equals end', () => {
+    const line: ServiceLine = { id: 'x', type: 'boarding', description: '', startDate: '2026-04-21', endDate: '2026-04-21', quantity: 1, rate: 50 }
+    expect(serviceAmount(line)).toBe(0)
+  })
+
+  it('handles peak rate correctly', () => {
+    const line: ServiceLine = { id: 'x', type: 'boarding', description: '', startDate: '2026-04-25', endDate: '2026-04-26', quantity: 1, rate: 60 }
+    expect(serviceAmount(line)).toBe(60) // 1 night × £60
+  })
+
+})
+
+// ─── groupConsecutive ─────────────────────────────────────────────────────────
+
+describe('groupConsecutive', () => {
+
+  it('returns empty array for empty input', () => {
+    expect(groupConsecutive([], (x: string) => x)).toEqual([])
+  })
+
+  it('returns single group for a single item', () => {
+    const result = groupConsecutive(['a'], (x) => x)
+    expect(result).toEqual([{ key: 'a', items: ['a'] }])
+  })
+
+  it('groups all items into one group when they share the same key', () => {
+    const result = groupConsecutive(['a', 'b', 'c'], () => 'same')
+    expect(result).toHaveLength(1)
+    expect(result[0].items).toEqual(['a', 'b', 'c'])
+  })
+
+  it('creates separate groups for items with different keys', () => {
+    const result = groupConsecutive(['a', 'b'], (x) => x)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({ key: 'a', items: ['a'] })
+    expect(result[1]).toEqual({ key: 'b', items: ['b'] })
+  })
+
+  it('groups consecutive runs and keeps non-consecutive ones separate', () => {
+    // standard, standard, peak, standard — 3 groups
+    const items = ['std', 'std', 'peak', 'std']
+    const result = groupConsecutive(items, (x) => x)
+    expect(result).toHaveLength(3)
+    expect(result[0]).toEqual({ key: 'std', items: ['std', 'std'] })
+    expect(result[1]).toEqual({ key: 'peak', items: ['peak'] })
+    expect(result[2]).toEqual({ key: 'std', items: ['std'] })
+  })
+
+  it('works with numeric keys', () => {
+    const items = [1, 1, 2, 2, 1]
+    const result = groupConsecutive(items, (x) => String(x))
+    expect(result).toHaveLength(3)
+    expect(result[0].items).toEqual([1, 1])
+    expect(result[1].items).toEqual([2, 2])
+    expect(result[2].items).toEqual([1])
   })
 
 })
