@@ -15,6 +15,7 @@ interface Dog {
   off_lead: string | null
   medical_requirements: string | null
   archived: boolean
+  is_solo: boolean
   owners: Owner[]
 }
 
@@ -133,6 +134,7 @@ export default function HomePage() {
             </div>
           )}
           <div className="flex flex-wrap gap-1 mt-2">
+            {dog.is_solo && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700">🐶 Solo</span>}
             {trial?.boardingEligible && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-purple-100 text-purple-700">✓ Boarding</span>}
             {trial?.daycareEligible  && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-yellow-100 text-yellow-700">✓ Daycare</span>}
             {!trial?.boardingEligible && trial?.boardingFailed && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-red-100 text-red-600">✗ Boarding</span>}

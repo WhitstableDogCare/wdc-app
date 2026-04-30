@@ -135,12 +135,8 @@ export async function createRecurringCalendarEvent(params: {
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
-  try {
-    const calendar = google.calendar({ version: 'v3', auth: getAuth() })
-    await calendar.events.delete({ calendarId: 'primary', eventId })
-  } catch (e) {
-    console.error('Google Calendar delete error:', e)
-  }
+  const calendar = google.calendar({ version: 'v3', auth: getAuth() })
+  await calendar.events.delete({ calendarId: 'primary', eventId })
 }
 
 // --- Public calendar helpers ---
