@@ -109,7 +109,14 @@ export async function POST(req: Request) {
       const services = preset
         ? buildServiceLines(preset, { start_date: booking.start_date, end_date: booking.end_date }, randomUUID)
         : []
-      const total = services.reduce((sum, s) => sum + serviceAmount(s), 0)
+      const subtotal = services.reduce((sum, s) => sum + serviceAmount(s), 0)
+
+      // Auto-apply 10% discount for boarding stays of 7+ nights
+      const nights = isBoarding && booking.end_date
+        ? Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / 86400000)
+        : 0
+      const applyDiscount = nights >= 7
+      const total = applyDiscount ? subtotal * 0.9 : subtotal
 
       // Allocate invoice number
       const freshConfig = readConfig()
@@ -132,6 +139,7 @@ export async function POST(req: Request) {
           services: JSON.stringify(services),
           invoice_date: new Date().toISOString().split('T')[0],
           due_date: booking.start_date,
+          apply_discount: applyDiscount,
           total,
           status: 'Unpaid',
         },
