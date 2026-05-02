@@ -225,8 +225,10 @@ export async function createPublicDayEvent(
       return
     } catch (e: any) {
       const isRateLimit = e?.code === 403 || e?.status === 403
-      if (isRateLimit && attempt < maxAttempts) {
-        console.warn(`[Public Calendar] Rate limited on ${date}, retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`)
+      // ECONNRESET/ETIMEDOUT are transient TCP errors seen during daily sync — safe to retry
+      const isNetworkError = e?.code === 'ECONNRESET' || e?.code === 'ECONNREFUSED' || e?.code === 'ETIMEDOUT' || e?.type === 'system'
+      if ((isRateLimit || isNetworkError) && attempt < maxAttempts) {
+        console.warn(`[Public Calendar] Transient error on ${date} (${e?.code ?? e?.status}), retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`)
         await new Promise(r => setTimeout(r, delay))
         delay *= 2
       } else {
