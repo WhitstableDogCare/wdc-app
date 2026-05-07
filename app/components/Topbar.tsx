@@ -29,7 +29,7 @@ export default function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const crumb = CRUMBS[segment] ?? segment.replace('/', '')
 
   return (
-    <div style={{
+    <div className="topbar-wrap" style={{
       display: 'flex', alignItems: 'center', gap: 16,
       padding: '0 28px', height: 56, minHeight: 56,
       borderBottom: '1px solid var(--border)',
@@ -45,7 +45,7 @@ export default function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         <IconMenu />
       </button>
 
-      {/* Breadcrumb */}
+      {/* Desktop breadcrumb */}
       <div
         style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: 11, color: 'var(--text-muted)' }}
         className="topbar-crumbs"
@@ -53,10 +53,23 @@ export default function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         WDC / <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{crumb}</strong>
       </div>
 
+      {/* Mobile page title — centred, absolute so it doesn't push siblings */}
+      <div className="topbar-mobile-title" style={{
+        position: 'absolute', left: 0, right: 0, textAlign: 'center',
+        fontFamily: 'var(--font-label)', textTransform: 'uppercase',
+        letterSpacing: '0.12em', fontSize: 12, fontWeight: 600,
+        color: 'var(--text)', pointerEvents: 'none',
+        display: 'none',
+      }}>
+        {crumb}
+      </div>
+
       <style>{`
         @media (max-width: 900px) {
+          .topbar-wrap { padding: 0 12px !important; }
           .menu-btn { display: inline-flex !important; align-items: center; }
-          .topbar-crumbs { display: none; }
+          .topbar-crumbs { display: none !important; }
+          .topbar-mobile-title { display: block !important; }
         }
       `}</style>
     </div>
