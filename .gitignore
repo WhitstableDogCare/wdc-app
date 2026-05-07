@@ -49,3 +49,6 @@ config.json
 
 # WDC — dog photos (large binary files, kept on disk only)
 public/photos/
+
+# WDC — one-time data migration scripts (contain real customer PII)
+scripts/import-invoices.py
