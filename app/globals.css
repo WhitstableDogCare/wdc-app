@@ -148,6 +148,10 @@ label {
   font-weight: 500;
 }
 
+@media (max-width: 900px) {
+  .page-head-text { display: none; }
+}
+
 @media print {
   .print\:hidden { display: none !important; }
   .rail { display: none !important; }

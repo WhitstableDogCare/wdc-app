@@ -124,7 +124,7 @@ export function StatTile({ value, label, sub, tint = 'none', href }: { value: st
 export function PageHead({ title, eyebrow, sub, children }: { title: string; eyebrow?: string; sub?: string; children?: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-      <div>
+      <div className="page-head-text">
         {eyebrow && (
           <span style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
             {eyebrow}
