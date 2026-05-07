@@ -99,10 +99,8 @@ const NAV_ITEMS = [
   { href: '/',          label: 'Dogs',      icon: IconDog },
   { href: '/bookings',  label: 'Bookings',  icon: IconBooking },
   { href: '/calendar',  label: 'Calendar',  icon: IconCalendar },
-  { href: '/invoices',  label: 'Invoices',  icon: IconInvoice },
 ]
 const TOOLS_ITEMS = [
-  { href: '/sync',     label: 'Sync',     icon: IconSync },
   { href: '/settings', label: 'Settings', icon: IconSettings },
 ]
 
