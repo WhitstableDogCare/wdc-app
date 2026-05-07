@@ -4,8 +4,8 @@
   "description": "Dog profiles and management for Whitstable Dog Care",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2d6a4f",
+  "background_color": "#F5E9C8",
+  "theme_color": "#ECBB56",
   "icons": [
     {
       "src": "/wdc-logo.png",

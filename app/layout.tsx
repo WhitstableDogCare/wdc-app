@@ -30,6 +30,7 @@ export const metadata: Metadata = {
   description: 'Dog profiles and management for Whitstable Dog Care',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'WDC' },
+  themeColor: '#ECBB56',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
