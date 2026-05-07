@@ -76,83 +76,76 @@ interface DogFormProps {
   dogId?: number
 }
 
-function FormField({
-  label,
-  children,
-  required,
-}: {
-  label: string
-  children: React.ReactNode
-  required?: boolean
-}) {
+// --- Style primitives ---
+
+const fieldLabelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'var(--font-label)',
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  marginBottom: 5,
+}
+
+function FormField({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
-    <div className="mb-4">
-      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-        {label} {required && <span className="text-red-500">*</span>}
+    <div style={{ marginBottom: 14 }}>
+      <label style={fieldLabelStyle}>
+        {label}{required && <span style={{ color: 'var(--tint-red-text)', marginLeft: 3 }}>*</span>}
       </label>
       {children}
     </div>
   )
 }
 
-const inputClass =
-  'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white'
-const textareaClass =
-  'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white resize-none'
-const selectClass =
-  'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white'
-
-function SectionHeader({ title }: { title: string }) {
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <h3 className="text-base font-bold text-[#2d6a4f] border-b border-green-100 pb-2 mb-4 mt-6 first:mt-0">
-      {title}
-    </h3>
+    <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', overflow: 'hidden', marginBottom: 12 }}>
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontFamily: 'var(--font-label)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{title}</span>
+      </div>
+      <div style={{ padding: '14px 16px' }}>{children}</div>
+    </div>
   )
 }
 
-function ContactSection({
-  title,
-  value,
-  onChange,
-}: {
+function ContactSection({ title, value, onChange }: {
   title: string
   value: ContactFields
   onChange: (v: ContactFields) => void
 }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-4 mb-4">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">{title}</h4>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>{title}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Name</label>
-          <input className={inputClass} value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} />
+          <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Name</label>
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={value.name} onChange={(e) => onChange({ ...value, name: e.target.value })} />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Phone</label>
-          <input className={inputClass} type="tel" value={value.phone} onChange={(e) => onChange({ ...value, phone: e.target.value })} />
+          <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Phone</label>
+          <input style={{ width: '100%', boxSizing: 'border-box' }} type="tel" value={value.phone} onChange={(e) => onChange({ ...value, phone: e.target.value })} />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Emergency Phone</label>
-          <input className={inputClass} type="tel" value={value.emergency_phone} onChange={(e) => onChange({ ...value, emergency_phone: e.target.value })} />
+          <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Emergency Phone</label>
+          <input style={{ width: '100%', boxSizing: 'border-box' }} type="tel" value={value.emergency_phone} onChange={(e) => onChange({ ...value, emergency_phone: e.target.value })} />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Email</label>
-          <input className={inputClass} type="email" value={value.email} onChange={(e) => onChange({ ...value, email: e.target.value })} />
+          <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Email</label>
+          <input style={{ width: '100%', boxSizing: 'border-box' }} type="email" value={value.email} onChange={(e) => onChange({ ...value, email: e.target.value })} />
         </div>
-        <div className="sm:col-span-2">
-          <label className="text-xs text-gray-500 block mb-1">Address</label>
-          <textarea className={textareaClass} rows={2} value={value.address} onChange={(e) => onChange({ ...value, address: e.target.value })} />
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Address</label>
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={2} value={value.address} onChange={(e) => onChange({ ...value, address: e.target.value })} />
         </div>
       </div>
     </div>
   )
 }
 
-function CheckboxGroup({
-  options,
-  selected,
-  onChange,
-}: {
+function CheckboxGroup({ options, selected, onChange }: {
   options: string[]
   selected: string[]
   onChange: (v: string[]) => void
@@ -165,16 +158,16 @@ function CheckboxGroup({
     }
   }
   return (
-    <div className="flex flex-wrap gap-2">
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
       {options.map((opt) => (
-        <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
+        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
           <input
             type="checkbox"
             checked={selected.includes(opt)}
             onChange={() => toggle(opt)}
-            className="accent-[#2d6a4f] w-4 h-4"
+            style={{ width: 15, height: 15 }}
           />
-          <span className="text-sm text-gray-700">{opt}</span>
+          {opt}
         </label>
       ))}
     </div>
@@ -316,7 +309,7 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
         return
       }
       router.push(`/dogs/${data.id || dogId}`)
-    } catch (err) {
+    } catch {
       setError('Network error')
       setSaving(false)
     }
@@ -325,44 +318,43 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
   return (
     <form onSubmit={handleSubmit}>
       {error && (
-        <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-4 text-sm">
+        <div style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: 'var(--tint-red-text)' }}>
           {error}
         </div>
       )}
 
       {/* Basic Info */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Basic Information" />
+      <SectionCard title="Basic Information">
         <FormField label="Dog's Name" required>
           <input
-            className={inputClass}
+            style={{ width: '100%', boxSizing: 'border-box' }}
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
             placeholder="e.g. Buddy"
             required
           />
         </FormField>
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <FormField label="Breed">
-            <input className={inputClass} value={form.breed} onChange={(e) => set('breed', e.target.value)} placeholder="e.g. Labrador" />
+            <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.breed} onChange={(e) => set('breed', e.target.value)} placeholder="e.g. Labrador" />
           </FormField>
           <FormField label="Date of Birth">
-            <input className={inputClass} type="date" value={form.birth_date} onChange={(e) => set('birth_date', e.target.value)} />
+            <input style={{ width: '100%', boxSizing: 'border-box' }} type="date" value={form.birth_date} onChange={(e) => set('birth_date', e.target.value)} />
             {form.birth_date && (() => {
               const diff = Date.now() - new Date(form.birth_date).getTime()
               const years = diff / (1000 * 60 * 60 * 24 * 365.25)
-              return <p className="text-xs text-gray-400 mt-1">Age: {years < 1 ? `${Math.round(years * 12)} months` : `${years.toFixed(1)} years`}</p>
+              return <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>Age: {years < 1 ? `${Math.round(years * 12)} months` : `${years.toFixed(1)} years`}</p>
             })()}
           </FormField>
           <FormField label="Sex">
-            <select className={selectClass} value={form.sex} onChange={(e) => set('sex', e.target.value)}>
+            <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.sex} onChange={(e) => set('sex', e.target.value)}>
               <option value="">Unknown</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
             </select>
           </FormField>
           <FormField label="Neutered / Spayed">
-            <select className={selectClass} value={form.neutered} onChange={(e) => set('neutered', e.target.value)}>
+            <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.neutered} onChange={(e) => set('neutered', e.target.value)}>
               <option value="">Unknown</option>
               <option value="true">Yes</option>
               <option value="false">No</option>
@@ -370,15 +362,14 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
           </FormField>
         </div>
         <FormField label="Microchip Number">
-          <input className={inputClass} value={form.microchip_number} onChange={(e) => set('microchip_number', e.target.value)} />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.microchip_number} onChange={(e) => set('microchip_number', e.target.value)} />
         </FormField>
-      </div>
+      </SectionCard>
 
       {/* Profile */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Profile" />
+      <SectionCard title="Profile">
         <FormField label="Energy Level">
-          <select className={selectClass} value={form.energy_level} onChange={(e) => set('energy_level', e.target.value)}>
+          <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.energy_level} onChange={(e) => set('energy_level', e.target.value)}>
             <option value="">Unknown</option>
             <option value="Low">Low</option>
             <option value="Medium">Medium</option>
@@ -386,21 +377,21 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
           </select>
         </FormField>
         <FormField label="Gets Along With Cats">
-          <select className={selectClass} value={form.gets_along_with_cats} onChange={(e) => set('gets_along_with_cats', e.target.value)}>
+          <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.gets_along_with_cats} onChange={(e) => set('gets_along_with_cats', e.target.value)}>
             <option value="">Unknown</option>
             <option value="Yes">Yes</option>
             <option value="No">No</option>
           </select>
         </FormField>
         <FormField label="Good With Children">
-          <select className={selectClass} value={form.good_with_children} onChange={(e) => set('good_with_children', e.target.value)}>
+          <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.good_with_children} onChange={(e) => set('good_with_children', e.target.value)}>
             <option value="">Unknown</option>
             <option value="Yes">Yes</option>
             <option value="No">No</option>
           </select>
         </FormField>
         <FormField label="Off-Lead">
-          <select className={selectClass} value={form.off_lead} onChange={(e) => set('off_lead', e.target.value)}>
+          <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.off_lead} onChange={(e) => set('off_lead', e.target.value)}>
             <option value="">Unknown</option>
             <option value="Yes">Yes</option>
             <option value="Working on it">Working on it</option>
@@ -408,129 +399,121 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
           </select>
         </FormField>
         <FormField label="Special Behaviours / Triggers">
-          <textarea className={textareaClass} rows={3} value={form.special_behaviours} onChange={(e) => set('special_behaviours', e.target.value)} placeholder="Any known triggers, fears, or special behaviours..." />
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={3} value={form.special_behaviours} onChange={(e) => set('special_behaviours', e.target.value)} placeholder="Any known triggers, fears, or special behaviours…" />
         </FormField>
-      </div>
+      </SectionCard>
 
       {/* Feeding */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Feeding" />
+      <SectionCard title="Feeding">
         <FormField label="Feeding Schedule">
-          <input className={inputClass} value={form.feeding_schedule} onChange={(e) => set('feeding_schedule', e.target.value)} placeholder="e.g. Twice a day, 8am and 5pm" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.feeding_schedule} onChange={(e) => set('feeding_schedule', e.target.value)} placeholder="e.g. Twice a day, 8am and 5pm" />
         </FormField>
         <FormField label="Food Type / Brand">
-          <input className={inputClass} value={form.food_type} onChange={(e) => set('food_type', e.target.value)} placeholder="e.g. Royal Canin dry kibble" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.food_type} onChange={(e) => set('food_type', e.target.value)} placeholder="e.g. Royal Canin dry kibble" />
         </FormField>
         <FormField label="Portion Size">
-          <input className={inputClass} value={form.portion_size} onChange={(e) => set('portion_size', e.target.value)} placeholder="e.g. 200g per meal" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.portion_size} onChange={(e) => set('portion_size', e.target.value)} placeholder="e.g. 200g per meal" />
         </FormField>
         <FormField label="Treats Allowed">
-          <input className={inputClass} value={form.treats_allowed} onChange={(e) => set('treats_allowed', e.target.value)} placeholder="e.g. Yes, only natural treats" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.treats_allowed} onChange={(e) => set('treats_allowed', e.target.value)} placeholder="e.g. Yes, only natural treats" />
         </FormField>
         <FormField label="Food & Treats Notes">
-          <textarea className={textareaClass} rows={2} value={form.food_and_treats} onChange={(e) => set('food_and_treats', e.target.value)} />
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={2} value={form.food_and_treats} onChange={(e) => set('food_and_treats', e.target.value)} />
         </FormField>
         <FormField label="Dietary Requirements">
-          <textarea className={textareaClass} rows={2} value={form.dietary_requirements} onChange={(e) => set('dietary_requirements', e.target.value)} placeholder="Any allergies or special dietary needs..." />
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={2} value={form.dietary_requirements} onChange={(e) => set('dietary_requirements', e.target.value)} placeholder="Any allergies or special dietary needs…" />
         </FormField>
-      </div>
+      </SectionCard>
 
       {/* Health */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Health" />
-        <div className="grid grid-cols-2 gap-3">
+      <SectionCard title="Health">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <FormField label="Vaccination Date">
-            <input className={inputClass} value={form.vaccination_date} onChange={(e) => set('vaccination_date', e.target.value)} placeholder="e.g. Jan 2024" />
+            <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.vaccination_date} onChange={(e) => set('vaccination_date', e.target.value)} placeholder="e.g. Jan 2024" />
           </FormField>
           <FormField label="Flea & Worm Treatment Date">
-            <input className={inputClass} value={form.flea_worm_date} onChange={(e) => set('flea_worm_date', e.target.value)} placeholder="e.g. March 2024" />
+            <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.flea_worm_date} onChange={(e) => set('flea_worm_date', e.target.value)} placeholder="e.g. March 2024" />
           </FormField>
         </div>
         <FormField label="Medical Requirements">
-          <textarea className={textareaClass} rows={3} value={form.medical_requirements} onChange={(e) => set('medical_requirements', e.target.value)} placeholder="Any medications, conditions, or special medical needs..." />
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={3} value={form.medical_requirements} onChange={(e) => set('medical_requirements', e.target.value)} placeholder="Any medications, conditions, or special medical needs…" />
         </FormField>
-      </div>
+      </SectionCard>
 
       {/* Care */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Care" />
+      <SectionCard title="Care">
         <FormField label="Exercise Needs">
-          <input className={inputClass} value={form.exercise_needs} onChange={(e) => set('exercise_needs', e.target.value)} placeholder="e.g. 2 walks a day, 30 min each" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.exercise_needs} onChange={(e) => set('exercise_needs', e.target.value)} placeholder="e.g. 2 walks a day, 30 min each" />
         </FormField>
         <FormField label="Sleeping Arrangements">
-          <input className={inputClass} value={form.sleeping_arrangements} onChange={(e) => set('sleeping_arrangements', e.target.value)} placeholder="e.g. Crate, dog bed, sofa" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.sleeping_arrangements} onChange={(e) => set('sleeping_arrangements', e.target.value)} placeholder="e.g. Crate, dog bed, sofa" />
         </FormField>
         <FormField label="Favourite Activities">
-          <input className={inputClass} value={form.favourite_activities} onChange={(e) => set('favourite_activities', e.target.value)} placeholder="e.g. Fetch, tug of war, swimming" />
+          <input style={{ width: '100%', boxSizing: 'border-box' }} value={form.favourite_activities} onChange={(e) => set('favourite_activities', e.target.value)} placeholder="e.g. Fetch, tug of war, swimming" />
         </FormField>
         <FormField label="Dog Commands">
-          <textarea className={textareaClass} rows={2} value={form.dog_commands} onChange={(e) => set('dog_commands', e.target.value)} placeholder="Any commands the dog knows..." />
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={2} value={form.dog_commands} onChange={(e) => set('dog_commands', e.target.value)} placeholder="Any commands the dog knows…" />
         </FormField>
-      </div>
+      </SectionCard>
 
       {/* Contacts */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Contacts" />
+      <SectionCard title="Contacts">
         <ContactSection title="Owner" value={form.owner} onChange={(v) => set('owner', v)} />
         <ContactSection title="Vet" value={form.vet} onChange={(v) => set('vet', v)} />
         <ContactSection title="Buddy 1 (Primary)" value={form.buddy1} onChange={(v) => set('buddy1', { ...v, is_primary: true })} />
         <ContactSection title="Buddy 2 (Optional)" value={form.buddy2} onChange={(v) => set('buddy2', { ...v, is_primary: false })} />
-      </div>
+      </SectionCard>
 
       {/* Consents */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Consents & Equipment" />
+      <SectionCard title="Consents & Equipment">
         <FormField label="Consented Daily Activities">
-          <CheckboxGroup
-            options={CONSENT_OPTIONS}
-            selected={form.consent_daily_activities}
-            onChange={(v) => set('consent_daily_activities', v)}
-          />
+          <CheckboxGroup options={CONSENT_OPTIONS} selected={form.consent_daily_activities} onChange={(v) => set('consent_daily_activities', v)} />
         </FormField>
         <FormField label="Concerns About Daily Activities">
-          <textarea className={textareaClass} rows={2} value={form.concerns_daily_activities} onChange={(e) => set('concerns_daily_activities', e.target.value)} />
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={2} value={form.concerns_daily_activities} onChange={(e) => set('concerns_daily_activities', e.target.value)} />
         </FormField>
         <FormField label="Equipment Provided by Owner">
-          <CheckboxGroup
-            options={EQUIPMENT_OWNER_OPTIONS}
-            selected={form.equipment_provided}
-            onChange={(v) => set('equipment_provided', v)}
-          />
+          <CheckboxGroup options={EQUIPMENT_OWNER_OPTIONS} selected={form.equipment_provided} onChange={(v) => set('equipment_provided', v)} />
         </FormField>
         <FormField label="Equipment Provided by WDC">
-          <CheckboxGroup
-            options={EQUIPMENT_WDC_OPTIONS}
-            selected={form.equipment_wdc}
-            onChange={(v) => set('equipment_wdc', v)}
-          />
+          <CheckboxGroup options={EQUIPMENT_WDC_OPTIONS} selected={form.equipment_wdc} onChange={(v) => set('equipment_wdc', v)} />
         </FormField>
-      </div>
+      </SectionCard>
 
       {/* Notes */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
-        <SectionHeader title="Notes" />
+      <SectionCard title="Notes">
         <textarea
-          className={textareaClass}
+          style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
           rows={4}
           value={form.notes}
           onChange={(e) => set('notes', e.target.value)}
-          placeholder="Any additional notes..."
+          placeholder="Any additional notes…"
         />
-      </div>
+      </SectionCard>
 
       {/* Submit */}
-      <div className="flex gap-3 pb-8">
+      <div style={{ display: 'flex', gap: 10, paddingBottom: 32 }}>
         <button
           type="submit"
           disabled={saving}
-          className="flex-1 bg-[#2d6a4f] text-white py-3 rounded-xl font-semibold hover:bg-[#245a41] transition-colors disabled:opacity-60 text-sm"
+          style={{
+            flex: 1, background: 'var(--cta-purple)', color: '#fff', border: 'none',
+            borderRadius: 'var(--density-radius-pill)', padding: '11px 0', fontSize: 12,
+            fontWeight: 600, fontFamily: 'var(--font-label)', letterSpacing: '0.06em',
+            textTransform: 'uppercase', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+          }}
         >
-          {saving ? 'Saving...' : mode === 'create' ? 'Add Dog' : 'Save Changes'}
+          {saving ? 'Saving…' : mode === 'create' ? 'Add Dog' : 'Save Changes'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-6 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+          style={{
+            padding: '11px 20px', borderRadius: 'var(--density-radius-pill)', fontSize: 12,
+            fontWeight: 600, fontFamily: 'var(--font-label)', letterSpacing: '0.06em',
+            textTransform: 'uppercase', cursor: 'pointer',
+            background: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border)',
+          }}
         >
           Cancel
         </button>
