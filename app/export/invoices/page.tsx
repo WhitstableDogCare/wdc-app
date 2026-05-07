@@ -86,7 +86,7 @@ export default async function InvoiceExportPage() {
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#92400e', marginBottom: 10 }}>
               Outstanding Invoices ({unpaidInvoices.length})
             </div>
-            <table>
+            <div style={{ overflowX: 'auto' }}><table>
               <thead>
                 <tr>
                   <th>Invoice</th>
@@ -107,7 +107,7 @@ export default async function InvoiceExportPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
 
@@ -144,7 +144,7 @@ export default async function InvoiceExportPage() {
                 </div>
 
                 {services.length > 0 && (
-                  <table style={{ marginTop: 4 }}>
+                  <div style={{ overflowX: 'auto' }}><table style={{ marginTop: 4 }}>
                     <thead>
                       <tr>
                         <th>Service</th>
@@ -165,7 +165,7 @@ export default async function InvoiceExportPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 )}
 
                 {inv.notes && (

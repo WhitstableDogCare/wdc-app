@@ -69,10 +69,10 @@ function getNextOccurrences(dayOfWeek: number, count = 4): string[] {
   return dates
 }
 
-function bookingPillColor(type: string): 'purple' | 'gold' | 'blue' | 'red' {
+function bookingPillColor(type: string): 'purple' | 'gold' | 'neutral' {
   if (type === 'Boarding' || type === 'Boarding Trial') return 'purple'
   if (type === 'Daycare' || type === 'Daycare Trial') return 'gold'
-  return 'neutral' as 'blue'
+  return 'neutral'
 }
 
 function BookingCard({ booking }: { booking: Booking }) {
@@ -390,7 +390,7 @@ function InvoicesTab() {
   const paid   = invoices.filter(inv => inv.status === 'Paid').sort((a, b) => (b.due_date ?? '').localeCompare(a.due_date ?? ''))
 
   const InvoiceTable = ({ rows }: { rows: Invoice[] }) => (
-    <Card style={{ padding: 0, overflow: 'hidden' }}>
+    <Card style={{ padding: 0, overflowX: 'auto' }}>
       <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
