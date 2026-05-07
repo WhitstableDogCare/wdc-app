@@ -862,7 +862,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
 
       {/* Tabs */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', overflowX: 'auto', borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: 'var(--border)' }}>
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -870,7 +870,6 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
               style={{
                 flexShrink: 0, padding: '12px 16px', fontSize: 12, fontWeight: activeTab === tab ? 600 : 400,
                 color: activeTab === tab ? 'var(--cta-purple)' : 'var(--text-muted)',
-                borderBottom: activeTab === tab ? '2px solid var(--cta-purple)' : '2px solid transparent',
                 background: 'none', border: 'none',
                 borderBottomWidth: 2,
                 borderBottomStyle: 'solid',
