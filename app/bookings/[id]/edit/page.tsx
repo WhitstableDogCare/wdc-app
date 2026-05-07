@@ -131,7 +131,7 @@ export default function EditBookingPage() {
   return (
     <div style={{ maxWidth: 560 }}>
       <PageHead title="Edit Booking">
-        <Btn href={`/bookings/${id}`} variant="secondary">Cancel</Btn>
+        <Btn onClick={() => router.back()} variant="secondary">Cancel</Btn>
       </PageHead>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -283,7 +283,7 @@ export default function EditBookingPage() {
           <Btn onClick={handleSubmit} disabled={saving} variant="primary">
             {saving ? 'Saving…' : 'Save Changes'}
           </Btn>
-          <Btn href={`/bookings/${id}`} variant="secondary">Cancel</Btn>
+          <Btn onClick={() => router.back()} variant="secondary">Cancel</Btn>
         </div>
       </div>
     </div>

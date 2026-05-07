@@ -140,7 +140,7 @@ function NewBookingInner() {
   return (
     <div style={{ maxWidth: 560 }}>
       <PageHead title="New Booking">
-        <Btn href="/bookings" variant="secondary">Cancel</Btn>
+        <Btn onClick={() => router.back()} variant="secondary">Cancel</Btn>
       </PageHead>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -312,7 +312,7 @@ function NewBookingInner() {
           <Btn onClick={handleSubmit} disabled={saving} variant="primary">
             {saving ? 'Creating…' : 'Confirm Booking'}
           </Btn>
-          <Btn href="/bookings" variant="secondary">Cancel</Btn>
+          <Btn onClick={() => router.back()} variant="secondary">Cancel</Btn>
         </div>
       </div>
     </div>
