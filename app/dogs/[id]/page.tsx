@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Card, Btn, Pill, Field, FieldGrid } from '../../components/ui'
 
 interface Owner { id: number; name: string | null; phone: string | null; emergency_phone: string | null; address: string | null; email: string | null }
 interface Vet { id: number; name: string | null; phone: string | null; emergency_phone: string | null; address: string | null; email: string | null }
@@ -84,30 +85,19 @@ const TRIAL_SECTIONS: TrialSection[] = [
   { key: 'actions_notes', label: 'Actions / Next Steps', sub: '', hints: ['Did we need to contact the owner during the trial?', 'Are there any actions needed in order to agree to further care?', 'Any recommendations to the owner about their dog\'s needs and future care at Whitstable Dog Care?'] },
 ]
 
-
-function outcomeStyle(outcome: string) {
-  if (outcome === 'Passed') return 'bg-green-100 text-green-700'
-  if (outcome === 'Failed') return 'bg-red-100 text-red-700'
-  return 'bg-yellow-100 text-yellow-700'
-}
-
-function outcomeIcon(outcome: string) {
-  if (outcome === 'Passed') return '✅'
-  if (outcome === 'Failed') return '❌'
-  return '⏳'
+function outcomePillColor(outcome: string): 'green' | 'red' | 'gold' {
+  if (outcome === 'Passed') return 'green'
+  if (outcome === 'Failed') return 'red'
+  return 'gold'
 }
 
 function TrialEligibilityBadges({ trials }: { trials: TrialReview[] }) {
   const passedBoarding = trials.some(t => t.trial_type === 'Boarding' && t.outcome === 'Passed')
   const passedAny      = trials.some(t => t.outcome === 'Passed')
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
-      <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${passedAny ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-        {passedAny ? '✅' : '❌'} Daycare eligible
-      </span>
-      <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${passedBoarding ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-        {passedBoarding ? '✅' : '❌'} Boarding eligible
-      </span>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+      <Pill color={passedAny ? 'green' : 'neutral'} dot>{passedAny ? 'Daycare eligible' : 'Not daycare eligible'}</Pill>
+      <Pill color={passedBoarding ? 'green' : 'neutral'} dot>{passedBoarding ? 'Boarding eligible' : 'Not boarding eligible'}</Pill>
     </div>
   )
 }
@@ -135,15 +125,14 @@ function TrialForm({ dogId, initial, onSave, onCancel }: {
     actions_notes:   initial?.actions_notes   ?? '',
   })
   const [saving, setSaving] = useState(false)
-
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = async () => {
     setSaving(true)
-    const url     = initial ? `/api/dogs/${dogId}/trials/${initial.id}` : `/api/dogs/${dogId}/trials`
-    const method  = initial ? 'PUT' : 'POST'
-    const res     = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
-    const saved   = await res.json()
+    const url    = initial ? `/api/dogs/${dogId}/trials/${initial.id}` : `/api/dogs/${dogId}/trials`
+    const method = initial ? 'PUT' : 'POST'
+    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+    const saved  = await res.json()
     setSaving(false)
     onSave(saved)
   }
@@ -151,73 +140,69 @@ function TrialForm({ dogId, initial, onSave, onCancel }: {
   const sections = TRIAL_SECTIONS.filter(s => !s.boardingOnly || form.trial_type === 'Boarding')
 
   return (
-    <div className="space-y-5">
-      {/* Header fields */}
-      <div className="grid grid-cols-2 gap-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Trial Type</label>
-          <select value={form.trial_type} onChange={e => set('trial_type', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]">
+          <label>Trial Type</label>
+          <select value={form.trial_type} onChange={e => set('trial_type', e.target.value)} style={{ width: '100%', marginTop: 4 }}>
             <option>Boarding</option>
             <option>Daycare</option>
           </select>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Outcome</label>
-          <select value={form.outcome} onChange={e => set('outcome', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]">
+          <label>Outcome</label>
+          <select value={form.outcome} onChange={e => set('outcome', e.target.value)} style={{ width: '100%', marginTop: 4 }}>
             <option>Pending</option>
             <option>Passed</option>
             <option>Failed</option>
           </select>
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Start Date & Time</label>
-          <input type="datetime-local" value={form.start_datetime} onChange={e => set('start_datetime', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <label>Start Date & Time</label>
+          <input type="datetime-local" value={form.start_datetime} onChange={e => set('start_datetime', e.target.value)} style={{ width: '100%', marginTop: 4 }} />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">End Date & Time</label>
-          <input type="datetime-local" value={form.end_datetime} onChange={e => set('end_datetime', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <label>End Date & Time</label>
+          <input type="datetime-local" value={form.end_datetime} onChange={e => set('end_datetime', e.target.value)} style={{ width: '100%', marginTop: 4 }} />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dogs Mixed With</label>
-          <input type="text" value={form.dogs_mixed_with} onChange={e => set('dogs_mixed_with', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <label>Dogs Mixed With</label>
+          <input type="text" value={form.dogs_mixed_with} onChange={e => set('dogs_mixed_with', e.target.value)} style={{ width: '100%', marginTop: 4 }} />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Completed By</label>
-          <select value={form.completed_by} onChange={e => set('completed_by', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white">
+          <label>Completed By</label>
+          <select value={form.completed_by} onChange={e => set('completed_by', e.target.value)} style={{ width: '100%', marginTop: 4 }}>
             <option value="">— Select —</option>
             <option>Jack Rojas Powell</option>
             <option>Kim Rojas Powell</option>
           </select>
         </div>
-        <div className="col-span-2">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Log Date</label>
-          <input type="date" value={form.log_date} onChange={e => set('log_date', e.target.value)} className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+        <div style={{ gridColumn: '1/-1' }}>
+          <label>Log Date</label>
+          <input type="date" value={form.log_date} onChange={e => set('log_date', e.target.value)} style={{ width: '100%', marginTop: 4 }} />
         </div>
       </div>
 
-      {/* Observation sections */}
       {sections.map(s => (
         <div key={s.key}>
-          <label className="text-sm font-semibold text-gray-700">{s.label}</label>
-          {s.sub && <p className="text-xs text-gray-400 mb-1">{s.sub}</p>}
-          <ul className="text-xs text-gray-400 mb-2 space-y-0.5 list-disc list-inside">
+          <label style={{ fontFamily: 'var(--font-body)', textTransform: 'none', letterSpacing: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{s.label}</label>
+          {s.sub && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 4px' }}>{s.sub}</p>}
+          <ul style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 6, paddingLeft: 16 }}>
             {s.hints.map(h => <li key={h}>{h}</li>)}
           </ul>
           <textarea
             rows={4}
             value={form[s.key as TrialSectionKey]}
             onChange={e => set(s.key, e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none"
             placeholder={`Notes on ${s.label.toLowerCase()}...`}
+            style={{ width: '100%', resize: 'none' }}
           />
         </div>
       ))}
 
-      <div className="flex gap-2 pt-2">
-        <button onClick={handleSave} disabled={saving} className="bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#245a41] disabled:opacity-60">
-          {saving ? 'Saving...' : 'Save Trial Review'}
-        </button>
-        <button onClick={onCancel} className="px-5 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50">Cancel</button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Btn type="button" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Trial Review'}</Btn>
+        <Btn type="button" variant="secondary" onClick={onCancel}>Cancel</Btn>
       </div>
     </div>
   )
@@ -229,46 +214,42 @@ function TrialCard({ trial, onEdit, onDelete }: { trial: TrialReview; onEdit: ()
   const hasSectionNotes = sections.some(s => trial[s.key as TrialSectionKey])
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => setExpanded(e => !e)}>
-        <div className="flex items-center gap-3">
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${outcomeStyle(trial.outcome)}`}>
-            {outcomeIcon(trial.outcome)} {trial.outcome}
-          </span>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', cursor: 'pointer' }} onClick={() => setExpanded(e => !e)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Pill color={outcomePillColor(trial.outcome)}>{trial.outcome}</Pill>
           <div>
-            <p className="text-sm font-semibold text-gray-800">{trial.trial_type} Trial</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{trial.trial_type} Trial</p>
             {trial.start_datetime && (
-              <p className="text-xs text-gray-500">
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
                 {new Date(trial.start_datetime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 {trial.completed_by && ` · ${trial.completed_by}`}
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={e => { e.stopPropagation(); onEdit() }} className="text-xs text-gray-400 hover:text-[#2d6a4f] px-2 py-1 rounded hover:bg-gray-50">Edit</button>
-          <button onClick={e => { e.stopPropagation(); onDelete() }} className="text-xs text-gray-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50">Delete</button>
-          <span className="text-gray-300 text-sm">{expanded ? '▲' : '▼'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={e => { e.stopPropagation(); onEdit() }} style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>Edit</button>
+          <button onClick={e => { e.stopPropagation(); onDelete() }} style={{ fontSize: 11, color: 'var(--tint-red-text)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>Delete</button>
+          <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{expanded ? '▲' : '▼'}</span>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-gray-100 p-4 space-y-4 bg-gray-50">
-          {/* Details */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            {trial.start_datetime && <div><span className="font-semibold text-gray-500">Start: </span>{new Date(trial.start_datetime).toLocaleString('en-GB')}</div>}
-            {trial.end_datetime   && <div><span className="font-semibold text-gray-500">End: </span>{new Date(trial.end_datetime).toLocaleString('en-GB')}</div>}
-            {trial.dogs_mixed_with && <div><span className="font-semibold text-gray-500">Mixed with: </span>{trial.dogs_mixed_with}</div>}
-            {trial.log_date && <div><span className="font-semibold text-gray-500">Log date: </span>{trial.log_date}</div>}
+        <div style={{ borderTop: '1px solid var(--border)', padding: '14px', background: 'var(--surface-app)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
+            {trial.start_datetime && <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Start: </span>{new Date(trial.start_datetime).toLocaleString('en-GB')}</div>}
+            {trial.end_datetime   && <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>End: </span>{new Date(trial.end_datetime).toLocaleString('en-GB')}</div>}
+            {trial.dogs_mixed_with && <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Mixed with: </span>{trial.dogs_mixed_with}</div>}
+            {trial.log_date && <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Log date: </span>{trial.log_date}</div>}
           </div>
-          {/* Sections */}
           {hasSectionNotes ? sections.map(s => trial[s.key as TrialSectionKey] ? (
             <div key={s.key}>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">{s.label}</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{trial[s.key as TrialSectionKey]}</p>
+              <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 4 }}>{s.label}</p>
+              <p style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-wrap', margin: 0 }}>{trial[s.key as TrialSectionKey]}</p>
             </div>
           ) : null) : (
-            <p className="text-xs text-gray-400">No observation notes recorded.</p>
+            <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>No observation notes recorded.</p>
           )}
         </div>
       )}
@@ -326,38 +307,35 @@ function DogConflictsSection({ dogId, allDogs }: { dogId: number; allDogs: { id:
   }
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Doesn&apos;t Get Along With</span>
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 500 }}>Doesn&apos;t Get Along With</span>
         {!adding && (
-          <button onClick={() => setAdding(true)}
-            className="text-xs text-[#2d6a4f] hover:underline font-medium">+ Add</button>
+          <button onClick={() => setAdding(true)} style={{ fontSize: 12, color: 'var(--cta-purple)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add</button>
         )}
       </div>
 
       {conflicts.length === 0 && !adding && (
-        <p className="text-sm text-gray-400">No conflicts recorded.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>No conflicts recorded.</p>
       )}
 
-      <div className="space-y-2">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {conflicts.map(c => (
-          <div key={c.id} className="flex items-start justify-between gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 8, padding: '8px 10px', opacity: 0.9 }}>
             <div>
-              <p className="text-sm font-medium text-gray-800">
-                🚫 {c.dog.name}{c.dog.breed ? <span className="text-gray-400 font-normal"> ({c.dog.breed})</span> : null}
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+                {c.dog.name}{c.dog.breed ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> ({c.dog.breed})</span> : null}
               </p>
-              {c.notes && <p className="text-xs text-gray-500 mt-0.5">{c.notes}</p>}
+              {c.notes && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{c.notes}</p>}
             </div>
-            <button onClick={() => handleRemove(c.dog.id)}
-              className="text-red-400 hover:text-red-600 text-xs shrink-0 mt-0.5">Remove</button>
+            <button onClick={() => handleRemove(c.dog.id)} style={{ fontSize: 11, color: 'var(--tint-red-text)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}>Remove</button>
           </div>
         ))}
       </div>
 
       {adding && (
-        <div className="mt-2 border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
-          <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white">
+        <div style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 10, padding: 12, background: 'var(--surface-app)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <select value={selectedId} onChange={e => setSelectedId(e.target.value)} style={{ width: '100%' }}>
             <option value="">— Select a dog —</option>
             {available.map(d => (
               <option key={d.id} value={d.id}>{d.name}{d.breed ? ` (${d.breed})` : ''}</option>
@@ -365,16 +343,10 @@ function DogConflictsSection({ dogId, allDogs }: { dogId: number; allDogs: { id:
           </select>
           <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Notes (optional) — e.g. snapped at each other during trial"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-          <div className="flex gap-2">
-            <button onClick={handleAdd} disabled={!selectedId || saving}
-              className="bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#245a41] disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-            <button onClick={() => { setAdding(false); setSelectedId(''); setNotes('') }}
-              className="text-gray-500 px-3 py-1.5 rounded-lg text-xs border border-gray-200 hover:bg-gray-100">
-              Cancel
-            </button>
+            style={{ width: '100%' }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn size="sm" type="button" onClick={handleAdd} disabled={!selectedId || saving}>{saving ? 'Saving…' : 'Save'}</Btn>
+            <Btn size="sm" variant="secondary" type="button" onClick={() => { setAdding(false); setSelectedId(''); setNotes('') }}>Cancel</Btn>
           </div>
         </div>
       )}
@@ -410,41 +382,25 @@ function DogTrialsTab({ dogId }: { dogId: number }) {
     setTrials(prev => prev.filter(t => t.id !== id))
   }
 
-  if (loading) return <div className="text-gray-500 text-sm">Loading...</div>
+  if (loading) return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
 
   return (
     <div>
       <TrialEligibilityBadges trials={trials} />
-
       {(showForm || editingTrial) ? (
-        <TrialForm
-          dogId={dogId}
-          initial={editingTrial}
-          onSave={handleSave}
-          onCancel={() => { setShowForm(false); setEditingTrial(undefined) }}
-        />
+        <TrialForm dogId={dogId} initial={editingTrial} onSave={handleSave} onCancel={() => { setShowForm(false); setEditingTrial(undefined) }} />
       ) : (
         <>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-500">{trials.length} trial review{trials.length !== 1 ? 's' : ''}</span>
-            <button
-              onClick={() => setShowForm(true)}
-              className="text-sm bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#245a41] transition-colors font-medium"
-            >
-              + Add Trial Review
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{trials.length} trial review{trials.length !== 1 ? 's' : ''}</span>
+            <Btn size="sm" onClick={() => setShowForm(true)}>+ Add Trial Review</Btn>
           </div>
           {trials.length === 0 ? (
-            <p className="text-gray-400 text-sm">No trial reviews yet.</p>
+            <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>No trial reviews yet.</p>
           ) : (
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {trials.map(t => (
-                <TrialCard
-                  key={t.id}
-                  trial={t}
-                  onEdit={() => { setEditingTrial(t); setShowForm(false) }}
-                  onDelete={() => handleDelete(t.id)}
-                />
+                <TrialCard key={t.id} trial={t} onEdit={() => { setEditingTrial(t); setShowForm(false) }} onDelete={() => handleDelete(t.id)} />
               ))}
             </div>
           )}
@@ -467,46 +423,34 @@ function DogInvoicesTab({ dogId }: { dogId: number }) {
       })
   }, [dogId])
 
-  if (loading) return <div className="text-gray-500 text-sm">Loading...</div>
+  if (loading) return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-gray-600">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</span>
-        <Link
-          href={`/invoices/new?dogId=${dogId}`}
-          className="text-sm bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#245a41] transition-colors font-medium"
-        >
-          + New Invoice
-        </Link>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</span>
+        <Btn size="sm" href={`/invoices/new?dogId=${dogId}`}>+ New Invoice</Btn>
       </div>
       {invoices.length === 0 ? (
-        <p className="text-gray-400 text-sm">No invoices yet for this dog.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>No invoices yet for this dog.</p>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {invoices.map(inv => (
-            <Link
-              key={inv.id}
-              href={`/invoices/${inv.id}`}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <div>
-                <span className="font-mono font-semibold text-[#2d6a4f] text-sm">#{inv.invoice_number}</span>
+            <Link key={inv.id} href={`/invoices/${inv.id}`}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--surface-app)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontFamily: 'var(--font-label)', fontSize: 11, color: 'var(--cta-purple)', fontWeight: 600 }}>#{inv.invoice_number}</span>
                 {inv.invoice_date && (
-                  <span className="text-xs text-gray-500 ml-2">
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     {new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  inv.status === 'Paid' ? 'bg-green-100 text-green-700'
-                  : inv.status === 'Void' ? 'bg-gray-100 text-gray-500'
-                  : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {inv.status === 'Paid' ? '✓ Paid' : inv.status === 'Void' ? '✗ Void' : 'Unpaid'}
-                </span>
-                <span className="font-semibold text-gray-800 text-sm">£{inv.total.toFixed(2)}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Pill color={inv.status === 'Paid' ? 'green' : inv.status === 'Void' ? 'neutral' : 'amber'}>
+                  {inv.status === 'Paid' ? 'Paid' : inv.status === 'Void' ? 'Void' : 'Unpaid'}
+                </Pill>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>£{inv.total.toFixed(2)}</span>
               </div>
             </Link>
           ))}
@@ -529,45 +473,33 @@ function DogIncidentsTab({ dogId }: { dogId: number }) {
       })
   }, [dogId])
 
-  if (loading) return <div className="text-gray-500 text-sm">Loading...</div>
+  if (loading) return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-gray-600">{incidents.length} incident report{incidents.length !== 1 ? 's' : ''}</span>
-        <a
-          href={`/incidents/new?dogId=${dogId}`}
-          className="text-sm bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition-colors font-medium"
-        >
-          + Log Incident
-        </a>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{incidents.length} incident report{incidents.length !== 1 ? 's' : ''}</span>
+        <Btn size="sm" href={`/incidents/new?dogId=${dogId}`} variant="secondary">+ Log Incident</Btn>
       </div>
       {incidents.length === 0 ? (
-        <p className="text-gray-400 text-sm">No incidents recorded for this dog.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>No incidents recorded for this dog.</p>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {incidents.map(inc => (
-            <a
-              key={inc.id}
-              href={`/incidents/${inc.id}`}
-              className="flex items-start justify-between p-3 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-semibold text-red-600">⚠ Incident</span>
-                  {inc.incident_date && (
-                    <span className="text-xs text-gray-500">
-                      {new Date(inc.incident_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {inc.incident_time && ` at ${inc.incident_time}`}
-                    </span>
-                  )}
-                </div>
-                {inc.location && <p className="text-xs text-gray-500">{inc.location}</p>}
-                {inc.description && (
-                  <p className="text-sm text-gray-700 mt-1 line-clamp-2">{inc.description}</p>
+            <Link key={inc.id} href={`/incidents/${inc.id}`}
+              style={{ display: 'flex', flexDirection: 'column', padding: '10px 12px', background: 'var(--tint-red)', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Pill color="red">Incident</Pill>
+                {inc.incident_date && (
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {new Date(inc.incident_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {inc.incident_time && ` at ${inc.incident_time}`}
+                  </span>
                 )}
               </div>
-            </a>
+              {inc.location && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>{inc.location}</p>}
+              {inc.description && <p style={{ fontSize: 13, color: 'var(--text)', marginTop: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{inc.description}</p>}
+            </Link>
           ))}
         </div>
       )}
@@ -607,14 +539,9 @@ function getNextOccurrencesDog(dayOfWeek: number, count = 4): string[] {
   return dates
 }
 
-function bookingBadgeStyle(type: string) {
-  if (type === 'Boarding')       return 'bg-purple-100 text-purple-700'
-  if (type === 'Boarding Trial') return 'bg-purple-50 text-purple-500 border border-purple-200'
-  if (type === 'Daycare Trial')  return 'bg-yellow-50 text-yellow-600 border border-yellow-200'
-  return 'bg-yellow-100 text-yellow-700'
+function bookingPillColor(type: string): 'purple' | 'gold' {
+  return type.startsWith('Boarding') ? 'purple' : 'gold'
 }
-
-function bookingIcon(type: string) { return type.startsWith('Boarding') ? '🌙' : '☀️' }
 
 function formatDbBookingDate(b: DogBooking, virtualDate?: string) {
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }
@@ -635,14 +562,11 @@ function DogBookingsTab({ dogId }: { dogId: number; dogName: string }) {
   useEffect(() => {
     fetch(`/api/bookings?dogId=${dogId}`)
       .then(r => r.json())
-      .then((data: DogBooking[]) => {
-        setBookings(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
+      .then((data: DogBooking[]) => { setBookings(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [dogId])
 
-  if (loading) return <div className="text-gray-500 text-sm">Loading...</div>
+  if (loading) return <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</div>
 
   const now = new Date()
   now.setHours(0, 0, 0, 0)
@@ -669,7 +593,6 @@ function DogBookingsTab({ dogId }: { dogId: number; dogName: string }) {
     (a._virtual_date ?? a.start_date).localeCompare(b._virtual_date ?? b.start_date)
   )
 
-  // Stats from past completed bookings
   const boardingNights = pastNonRecurring
     .filter(b => b.booking_type === 'Boarding')
     .reduce((s, b) => s + (b.end_date ? nightsBetween(b.start_date, b.end_date) : 1), 0)
@@ -679,72 +602,58 @@ function DogBookingsTab({ dogId }: { dogId: number; dogName: string }) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <a href={`/bookings/new?dogId=${dogId}`}
-          className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#245a41] transition-colors">
-          + New Booking
-        </a>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <Btn size="sm" href={`/bookings/new?dogId=${dogId}`}>+ New Booking</Btn>
       </div>
-
       {bookings.length === 0 ? (
-        <p className="text-gray-400 text-sm">No bookings found for this dog.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>No bookings found for this dog.</p>
       ) : (
         <>
           {showStats && (
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <div className="bg-purple-50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-purple-700">{boardingNights}</p>
-                <p className="text-xs text-purple-500 font-medium">Nights</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+              <div style={{ background: 'var(--tint-purple)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--tint-purple-text)', margin: 0 }}>{boardingNights}</p>
+                <p style={{ fontSize: 11, color: 'var(--tint-purple-text)', fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.85, margin: 0 }}>Nights</p>
               </div>
-              <div className="bg-yellow-50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-yellow-700">{daycareDays}</p>
-                <p className="text-xs text-yellow-600 font-medium">Daycare Days</p>
+              <div style={{ background: 'var(--tint-gold)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--tint-gold-text)', margin: 0 }}>{daycareDays}</p>
+                <p style={{ fontSize: 11, color: 'var(--tint-gold-text)', fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.85, margin: 0 }}>Daycare Days</p>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-gray-600">{trialCount}</p>
-                <p className="text-xs text-gray-500 font-medium">Trials</p>
+              <div style={{ background: 'var(--tint-neutral)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--tint-neutral-text)', margin: 0 }}>{trialCount}</p>
+                <p style={{ fontSize: 11, color: 'var(--tint-neutral-text)', fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.85, margin: 0 }}>Trials</p>
               </div>
             </div>
           )}
-
           {upcoming.length > 0 && (
-            <div className="mb-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Upcoming</h3>
-              <div className="space-y-2">
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'var(--text-dim)', marginBottom: 6 }}>Upcoming</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {upcoming.map((b, i) => (
-                  <a key={b._virtual_date ? `${b.id}-${b._virtual_date}` : `${b.id}-${i}`}
-                    href={`/bookings/${b.id}`}
-                    className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 hover:bg-gray-100 transition-colors">
+                  <Link key={b._virtual_date ? `${b.id}-${b._virtual_date}` : `${b.id}-${i}`} href={`/bookings/${b.id}`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-app)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--border)' }}>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {formatDbBookingDate(b, b._virtual_date)}
-                      </p>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{formatDbBookingDate(b, b._virtual_date)}</p>
                       {b.is_recurring && b.day_of_week != null && (
-                        <p className="text-xs text-blue-500 mt-0.5">🔁 Recurring every {DOG_DAY_NAMES[b.day_of_week]}</p>
+                        <p style={{ fontSize: 11, color: 'var(--tint-blue-text)', marginTop: 2 }}>Recurring every {DOG_DAY_NAMES[b.day_of_week]}</p>
                       )}
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${bookingBadgeStyle(b.booking_type)}`}>
-                      {bookingIcon(b.booking_type)} {b.booking_type}
-                    </span>
-                  </a>
+                    <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
+                  </Link>
                 ))}
               </div>
             </div>
           )}
-
           {pastNonRecurring.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Past</h3>
-              <div className="space-y-2">
+              <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'var(--text-dim)', marginBottom: 6 }}>Past</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {pastNonRecurring.map((b, i) => (
-                  <a key={`past-${b.id}-${i}`}
-                    href={`/bookings/${b.id}`}
-                    className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 opacity-60 hover:opacity-80 transition-opacity">
-                    <p className="text-sm font-medium text-gray-700">{formatDbBookingDate(b)}</p>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${bookingBadgeStyle(b.booking_type)}`}>
-                      {bookingIcon(b.booking_type)} {b.booking_type}
-                    </span>
-                  </a>
+                  <Link key={`past-${b.id}-${i}`} href={`/bookings/${b.id}`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-app)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--border)', opacity: 0.65 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{formatDbBookingDate(b)}</p>
+                    <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -755,34 +664,18 @@ function DogBookingsTab({ dogId }: { dogId: number; dogName: string }) {
   )
 }
 
-function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
-  if (!value) return null
-  return (
-    <div className="py-2 border-b border-gray-100 last:border-0">
-      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-0.5">{label}</span>
-      <span className="text-sm text-gray-800">{value}</span>
-    </div>
-  )
-}
-
 function ContactCard({ title, person }: { title: string; person: { name?: string | null; phone?: string | null; emergency_phone?: string | null; address?: string | null; email?: string | null } | null }) {
   if (!person) return null
   const hasInfo = person.name || person.phone || person.email || person.address
   if (!hasInfo) return null
   return (
-    <div className="bg-gray-50 rounded-lg p-4 mb-3">
-      <h4 className="font-semibold text-[#2d6a4f] mb-2 text-sm">{title}</h4>
-      {person.name && <p className="text-sm font-medium text-gray-800">{person.name}</p>}
-      {person.phone && (
-        <a href={`tel:${person.phone}`} className="text-sm text-blue-600 hover:underline block">{person.phone}</a>
-      )}
-      {person.emergency_phone && (
-        <p className="text-xs text-gray-500">Emergency: <a href={`tel:${person.emergency_phone}`} className="text-blue-600 hover:underline">{person.emergency_phone}</a></p>
-      )}
-      {person.email && (
-        <a href={`mailto:${person.email}`} className="text-sm text-blue-600 hover:underline block">{person.email}</a>
-      )}
-      {person.address && <p className="text-sm text-gray-600 mt-1">{person.address}</p>}
+    <div style={{ background: 'var(--surface-app)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+      <h4 style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10.5, color: 'var(--cta-purple)', margin: '0 0 8px', fontWeight: 600 }}>{title}</h4>
+      {person.name && <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{person.name}</p>}
+      {person.phone && <a href={`tel:${person.phone}`} style={{ fontSize: 13, color: 'var(--tint-blue-text)', display: 'block' }}>{person.phone}</a>}
+      {person.emergency_phone && <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Emergency: <a href={`tel:${person.emergency_phone}`} style={{ color: 'var(--tint-blue-text)' }}>{person.emergency_phone}</a></p>}
+      {person.email && <a href={`mailto:${person.email}`} style={{ fontSize: 13, color: 'var(--tint-blue-text)', display: 'block' }}>{person.email}</a>}
+      {person.address && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{person.address}</p>}
     </div>
   )
 }
@@ -816,11 +709,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     fetch(`/api/dogs/${id}`)
       .then((r) => r.json())
-      .then((data) => {
-        setDog(data)
-        setNotes(data.notes || '')
-        setLoading(false)
-      })
+      .then((data) => { setDog(data); setNotes(data.notes || ''); setLoading(false) })
       .catch(() => setLoading(false))
     fetch('/api/dogs').then(r => r.json()).then(setAllDogs)
   }, [id])
@@ -835,11 +724,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
   const handleArchive = async () => {
     if (!confirm(`Archive ${dog?.name}? They'll be hidden from active lists but all their data is kept.`)) return
     setArchiving(true)
-    const res = await fetch(`/api/dogs/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ archived: true }),
-    })
+    const res = await fetch(`/api/dogs/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) })
     const updated = await res.json()
     setDog(updated)
     setArchiving(false)
@@ -847,11 +732,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
 
   const handleUnarchive = async () => {
     setArchiving(true)
-    const res = await fetch(`/api/dogs/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ archived: false }),
-    })
+    const res = await fetch(`/api/dogs/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false }) })
     const updated = await res.json()
     setDog(updated)
     setArchiving(false)
@@ -861,30 +742,20 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
     if (!dog) return
     const newVal = !dog.is_solo
     if (newVal && !confirm(`Mark ${dog.name} as Solo? They will not be bookable on the same day as other Solo dogs.`)) return
-    const res = await fetch(`/api/dogs/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_solo: newVal }),
-    })
+    const res = await fetch(`/api/dogs/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_solo: newVal }) })
     const updated = await res.json()
     setDog(updated)
   }
 
   const handleSaveNotes = async () => {
     setSavingNotes(true)
-    await fetch(`/api/dogs/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes }),
-    })
+    await fetch(`/api/dogs/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes }) })
     setSavingNotes(false)
     setNotesSaved(true)
     setTimeout(() => setNotesSaved(false), 2000)
   }
 
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click()
-  }
+  const handlePhotoClick = () => { fileInputRef.current?.click() }
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -892,209 +763,165 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
     setUploadingPhoto(true)
     const formData = new FormData()
     formData.append('photo', file)
-    const res = await fetch(`/api/dogs/${id}/photo`, {
-      method: 'POST',
-      body: formData,
-    })
+    const res = await fetch(`/api/dogs/${id}/photo`, { method: 'POST', body: formData })
     const data = await res.json()
-    if (data.photo_path && dog) {
-      setDog({ ...dog, photo_path: data.photo_path })
-    }
+    if (data.photo_path && dog) setDog({ ...dog, photo_path: data.photo_path })
     setUploadingPhoto(false)
   }
 
-  if (loading) return <div className="flex justify-center py-16 text-gray-500">Loading...</div>
-  if (!dog) return <div className="text-center py-16 text-gray-500">Dog not found</div>
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
+  if (!dog) return <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Dog not found</div>
 
   const consentActivities = parseJsonArray(dog.consent_daily_activities)
   const equipmentProvided = parseJsonArray(dog.equipment_provided)
   const equipmentWdc = parseJsonArray(dog.equipment_wdc)
 
+  // Compute age label
+  let ageLabel = ''
+  if (dog.birth_date) {
+    const diff = Date.now() - new Date(dog.birth_date).getTime()
+    const years = diff / (1000 * 60 * 60 * 24 * 365.25)
+    ageLabel = years < 1 ? `${Math.round(years * 12)} months` : `${years.toFixed(1)} yrs`
+  } else if (dog.age) {
+    ageLabel = `${dog.age} yrs`
+  }
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <Link href="/" className="text-sm text-[#2d6a4f] hover:underline flex items-center gap-1 mb-4">
-        ← Back to all dogs
+    <div style={{ maxWidth: 760 }}>
+      <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--cta-purple)', fontFamily: 'var(--font-label)', letterSpacing: '0.06em', marginBottom: 16 }}>
+        ← Back to dogs
       </Link>
 
       {/* Header card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+      <Card style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
+        {/* Photo */}
         <div
-          className="relative bg-gray-100 cursor-pointer group"
-          style={{ minHeight: 240 }}
+          style={{ position: 'relative', background: 'var(--tint-neutral)', cursor: 'pointer', minHeight: 200, maxHeight: 320, overflow: 'hidden' }}
           onClick={handlePhotoClick}
+          className="photo-area"
         >
           {dog.photo_path ? (
-            <img
-              src={dog.photo_path}
-              alt={dog.name}
-              className="w-full object-cover"
-              style={{ maxHeight: 320 }}
-            />
+            <img src={dog.photo_path} alt={dog.name} style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 320 }} />
           ) : (
-            <div className="flex items-center justify-center text-gray-300" style={{ minHeight: 200 }}>
-              <span className="text-8xl">🐕</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2 .336-3.5 2.098-3.5 4 0 .801.07 1.6.14 2.4C3 11.5 3 13 3 13.5c0 2.5 2 4.5 4.5 4.5S12 16 12 13.5c0-.5.14-1.94.14-1.94"/>
+                <path d="M14.836 5C14.836 3.67 16.165 2.62 17.836 3c1.78.397 2.996 2.098 2.996 4 0 .758-.07 1.486-.14 2.2l.144.3"/>
+                <circle cx="17" cy="15" r="2.5"/>
+                <path d="M14.5 13.5v-2"/>
+              </svg>
             </div>
           )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-            <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-3 py-1.5 rounded-full">
-              {uploadingPhoto ? 'Uploading...' : 'Tap to change photo'}
+          <div className="photo-overlay" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0)', transition: 'background 150ms' }}>
+            <span style={{ color: '#fff', fontSize: 13, fontWeight: 500, background: 'rgba(0,0,0,0.5)', padding: '6px 14px', borderRadius: 50, opacity: 0 }} className="photo-label">
+              {uploadingPhoto ? 'Uploading…' : 'Change photo'}
             </span>
           </div>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handlePhotoChange}
-        />
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
 
-        <div className="p-5">
-          <div className="flex items-start justify-between">
+        <div style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{dog.name}</h1>
-              {dog.breed && <p className="text-gray-500 text-sm mt-0.5">{dog.breed}</p>}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {(() => {
-                  if (dog.birth_date) {
-                    const diff = Date.now() - new Date(dog.birth_date).getTime()
-                    const years = diff / (1000 * 60 * 60 * 24 * 365.25)
-                    const label = years < 1 ? `${Math.round(years * 12)} months` : `${years.toFixed(1)} yrs`
-                    return (
-                      <span className="text-xs bg-green-50 text-[#2d6a4f] px-2 py-0.5 rounded-full font-medium" title={`Born ${dog.birth_date}`}>
-                        {label}
-                      </span>
-                    )
-                  } else if (dog.age) {
-                    return (
-                      <span className="text-xs bg-green-50 text-[#2d6a4f] px-2 py-0.5 rounded-full font-medium">
-                        {dog.age} yrs
-                      </span>
-                    )
-                  }
-                  return null
-                })()}
-                {dog.sex && (
-                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                    {dog.sex}
-                  </span>
-                )}
-                {dog.neutered !== null && dog.neutered !== undefined && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dog.neutered ? 'bg-purple-50 text-purple-700' : 'bg-orange-50 text-orange-700'}`}>
-                    {dog.neutered ? 'Neutered' : 'Intact'}
-                  </span>
-                )}
-                {dog.energy_level && (
-                  <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
-                    {dog.energy_level} energy
-                  </span>
-                )}
-                {dog.is_solo && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    🐶 Solo
-                  </span>
-                )}
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,3vw,28px)', margin: 0, fontWeight: 400, color: 'var(--text)' }}>{dog.name}</h1>
+              {dog.breed && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 8px' }}>{dog.breed}</p>}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {ageLabel && <Pill color="green">{ageLabel}</Pill>}
+                {dog.sex && <Pill color="blue">{dog.sex}</Pill>}
+                {dog.neutered !== null && dog.neutered !== undefined && <Pill color={dog.neutered ? 'purple' : 'amber'}>{dog.neutered ? 'Neutered' : 'Intact'}</Pill>}
+                {dog.energy_level && <Pill color="gold">{dog.energy_level} energy</Pill>}
+                {dog.is_solo && <Pill color="amber">Solo</Pill>}
+                {dog.archived && <Pill color="neutral">Archived</Pill>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleToggleSolo}
-                className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${dog.is_solo ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}
-              >
-                {dog.is_solo ? '🐶 Solo' : 'Set Solo'}
-              </button>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Btn size="sm" variant="ghost" onClick={handleToggleSolo}>
+                {dog.is_solo ? 'Unset Solo' : 'Set Solo'}
+              </Btn>
               {dog.archived ? (
-                <button
-                  onClick={handleUnarchive}
-                  disabled={archiving}
-                  className="text-sm bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium disabled:opacity-60"
-                >
-                  {archiving ? 'Restoring...' : 'Unarchive'}
-                </button>
+                <Btn size="sm" variant="secondary" onClick={handleUnarchive} disabled={archiving}>{archiving ? 'Restoring…' : 'Unarchive'}</Btn>
               ) : (
-                <button
-                  onClick={handleArchive}
-                  disabled={archiving}
-                  className="text-sm border border-gray-200 text-gray-500 px-3 py-1.5 rounded-lg hover:bg-gray-50 hover:text-gray-700 transition-colors font-medium disabled:opacity-60"
-                >
-                  {archiving ? 'Archiving...' : 'Archive'}
-                </button>
+                <Btn size="sm" variant="secondary" onClick={handleArchive} disabled={archiving}>{archiving ? 'Archiving…' : 'Archive'}</Btn>
               )}
-              <Link
-                href={`/dogs/${dog.id}/edit`}
-                className="text-sm bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#245a41] transition-colors font-medium"
-              >
-                Edit
-              </Link>
+              <Btn size="sm" href={`/dogs/${dog.id}/edit`}>Edit</Btn>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Archived banner */}
       {dog.archived && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-500 text-lg">📦</span>
-            <div>
-              <p className="text-sm font-semibold text-amber-800">This dog is archived</p>
-              <p className="text-xs text-amber-600">They are hidden from active lists. All data is preserved.</p>
-            </div>
+        <div style={{ background: 'var(--tint-amber)', border: '1px solid var(--tint-amber-text)', borderRadius: 10, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--tint-amber-text)', margin: 0 }}>This dog is archived</p>
+            <p style={{ fontSize: 11, color: 'var(--tint-amber-text)', opacity: 0.8, margin: 0 }}>Hidden from active lists — all data preserved.</p>
           </div>
-          <button
-            onClick={handleUnarchive}
-            disabled={archiving}
-            className="text-xs font-semibold bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-60 flex-shrink-0"
-          >
-            {archiving ? 'Restoring...' : 'Unarchive'}
-          </button>
+          <Btn size="sm" variant="secondary" onClick={handleUnarchive} disabled={archiving}>{archiving ? 'Restoring…' : 'Unarchive'}</Btn>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-gray-100">
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', overflowX: 'auto', borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: 'var(--border)' }}>
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab
-                  ? 'text-[#2d6a4f] border-b-2 border-[#2d6a4f]'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              style={{
+                flexShrink: 0, padding: '12px 16px', fontSize: 12, fontWeight: activeTab === tab ? 600 : 400,
+                color: activeTab === tab ? 'var(--cta-purple)' : 'var(--text-muted)',
+                background: 'none', border: 'none',
+                borderBottomWidth: 2,
+                borderBottomStyle: 'solid',
+                borderBottomColor: activeTab === tab ? 'var(--cta-purple)' : 'transparent',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.06em',
+                transition: 'color 150ms',
+              }}
             >
               {tab}
             </button>
           ))}
         </div>
 
-        <div className="p-5">
+        <div style={{ padding: '16px 18px' }}>
           {activeTab === 'Profile' && (
-            <div>
-              <InfoRow label="Energy Level" value={dog.energy_level} />
-              <InfoRow label="Off-Lead" value={dog.off_lead} />
-              <InfoRow label="Gets Along With Cats" value={dog.gets_along_with_cats} />
-              <InfoRow label="Good With Children" value={dog.good_with_children} />
-              <InfoRow label="Special Behaviours / Triggers" value={dog.special_behaviours} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <FieldGrid>
+                {dog.energy_level && <Field label="Energy Level" value={dog.energy_level} />}
+                {dog.off_lead && <Field label="Off-Lead" value={dog.off_lead} />}
+                {dog.gets_along_with_cats && <Field label="Gets Along With Cats" value={dog.gets_along_with_cats} />}
+                {dog.good_with_children && <Field label="Good With Children" value={dog.good_with_children} />}
+              </FieldGrid>
+              {dog.special_behaviours && (
+                <div style={{ marginTop: 12 }}>
+                  <Field label="Special Behaviours / Triggers" value={dog.special_behaviours} />
+                </div>
+              )}
               <DogConflictsSection dogId={dog.id} allDogs={allDogs} />
-              <div className="border-t border-gray-100 my-4" />
-              <InfoRow label="Exercise Needs" value={dog.exercise_needs} />
-              <InfoRow label="Sleeping Arrangements" value={dog.sleeping_arrangements} />
-              <InfoRow label="Favourite Activities" value={dog.favourite_activities} />
-              <InfoRow label="Dog Commands" value={dog.dog_commands} />
-              <div className="border-t border-gray-100 my-4" />
-              <InfoRow label="Feeding Schedule" value={dog.feeding_schedule} />
-              <InfoRow label="Food Type / Brand" value={dog.food_type} />
-              <InfoRow label="Portion Size" value={dog.portion_size} />
-              <InfoRow label="Treats Allowed" value={dog.treats_allowed} />
-              <InfoRow label="Food & Treats Notes" value={dog.food_and_treats} />
-              <InfoRow label="Dietary Requirements" value={dog.dietary_requirements} />
-              <div className="border-t border-gray-100 my-4" />
-              <InfoRow label="Vaccination Date" value={dog.vaccination_date} />
-              <InfoRow label="Flea & Worm Treatment Date" value={dog.flea_worm_date} />
-              <InfoRow label="Medical Requirements" value={dog.medical_requirements} />
-              <InfoRow label="Microchip Number" value={dog.microchip_number} />
+              <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+              <FieldGrid>
+                {dog.exercise_needs && <Field label="Exercise Needs" value={dog.exercise_needs} />}
+                {dog.sleeping_arrangements && <Field label="Sleeping Arrangements" value={dog.sleeping_arrangements} />}
+                {dog.favourite_activities && <Field label="Favourite Activities" value={dog.favourite_activities} />}
+                {dog.dog_commands && <Field label="Dog Commands" value={dog.dog_commands} />}
+              </FieldGrid>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+              <FieldGrid>
+                {dog.feeding_schedule && <Field label="Feeding Schedule" value={dog.feeding_schedule} />}
+                {dog.food_type && <Field label="Food Type / Brand" value={dog.food_type} />}
+                {dog.portion_size && <Field label="Portion Size" value={dog.portion_size} />}
+                {dog.treats_allowed && <Field label="Treats Allowed" value={dog.treats_allowed} />}
+                {dog.food_and_treats && <Field label="Food & Treats Notes" value={dog.food_and_treats} />}
+                {dog.dietary_requirements && <Field label="Dietary Requirements" value={dog.dietary_requirements} />}
+              </FieldGrid>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+              <FieldGrid>
+                {dog.vaccination_date && <Field label="Vaccination Date" value={dog.vaccination_date} />}
+                {dog.flea_worm_date && <Field label="Flea & Worm Treatment" value={dog.flea_worm_date} />}
+                {dog.medical_requirements && <Field label="Medical Requirements" value={dog.medical_requirements} />}
+                {dog.microchip_number && <Field label="Microchip Number" value={dog.microchip_number} />}
+              </FieldGrid>
             </div>
           )}
 
@@ -1110,60 +937,42 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
                 <ContactCard key={buddy.id} title={buddy.is_primary ? 'Primary Buddy' : 'Secondary Buddy'} person={buddy} />
               ))}
               {dog.owners.length === 0 && dog.vets.length === 0 && dog.buddies.length === 0 && (
-                <p className="text-gray-500 text-sm">No contacts added yet.</p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No contacts added yet.</p>
               )}
-              <div className="border-t border-gray-100 my-4" />
+              <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }} />
               {consentActivities.length > 0 && (
-                <div className="mb-4">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Consented Daily Activities</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {consentActivities.map((item, i) => (
-                      <span key={i} className="text-xs bg-green-50 text-[#2d6a4f] border border-green-200 px-2 py-0.5 rounded-full">{item}</span>
-                    ))}
+                <div style={{ marginBottom: 14 }}>
+                  <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 8 }}>Consented Daily Activities</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {consentActivities.map((item, i) => <Pill key={i} color="green">{item}</Pill>)}
                   </div>
                 </div>
               )}
-              <InfoRow label="Concerns About Daily Activities" value={dog.concerns_daily_activities} />
+              {dog.concerns_daily_activities && <Field label="Concerns About Daily Activities" value={dog.concerns_daily_activities} />}
               {equipmentProvided.length > 0 && (
-                <div className="mb-4">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Equipment Provided by Owner</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {equipmentProvided.map((item, i) => (
-                      <span key={i} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">{item}</span>
-                    ))}
+                <div style={{ margin: '14px 0' }}>
+                  <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 8 }}>Equipment Provided by Owner</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {equipmentProvided.map((item, i) => <Pill key={i} color="blue">{item}</Pill>)}
                   </div>
                 </div>
               )}
               {equipmentWdc.length > 0 && (
-                <div className="mb-4">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Equipment Provided by WDC</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {equipmentWdc.map((item, i) => (
-                      <span key={i} className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">{item}</span>
-                    ))}
+                <div style={{ margin: '14px 0' }}>
+                  <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 8 }}>Equipment Provided by WDC</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {equipmentWdc.map((item, i) => <Pill key={i} color="purple">{item}</Pill>)}
                   </div>
                 </div>
               )}
-              <InfoRow label="Social Media Consent" value={dog.consent_social_media} />
-              <InfoRow label="Preferred Communication" value={dog.consent_communication} />
-              <div className="border-t border-gray-100 my-4" />
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={6}
-                placeholder="Add any notes about this dog..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none"
-              />
-              <div className="flex items-center gap-3 mt-3">
-                <button
-                  onClick={handleSaveNotes}
-                  disabled={savingNotes}
-                  className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-60"
-                >
-                  {savingNotes ? 'Saving...' : 'Save Notes'}
-                </button>
-                {notesSaved && <span className="text-green-600 text-sm">Saved!</span>}
+              {dog.consent_social_media && <Field label="Social Media Consent" value={dog.consent_social_media} />}
+              {dog.consent_communication && <Field label="Preferred Communication" value={dog.consent_communication} />}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+              <label style={{ display: 'block', marginBottom: 6 }}>Notes</label>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={6} placeholder="Add any notes about this dog…" style={{ width: '100%', resize: 'none' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                <Btn onClick={handleSaveNotes} disabled={savingNotes}>{savingNotes ? 'Saving…' : 'Save Notes'}</Btn>
+                {notesSaved && <span style={{ fontSize: 12, color: 'var(--status-available)' }}>Saved!</span>}
               </div>
             </div>
           )}
@@ -1171,31 +980,28 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
           {activeTab === 'Bookings & Trials' && (
             <div>
               <DogBookingsTab dogId={parseInt(id)} dogName={dog.name} />
-              <div className="border-t border-gray-100 my-6" />
+              <div style={{ borderTop: '1px solid var(--border)', margin: '24px 0' }} />
               <DogTrialsTab dogId={parseInt(id)} />
             </div>
           )}
 
-          {activeTab === 'Invoices' && (
-            <DogInvoicesTab dogId={parseInt(id)} />
-          )}
-
-          {activeTab === 'Incidents' && (
-            <DogIncidentsTab dogId={parseInt(id)} />
-          )}
+          {activeTab === 'Invoices' && <DogInvoicesTab dogId={parseInt(id)} />}
+          {activeTab === 'Incidents' && <DogIncidentsTab dogId={parseInt(id)} />}
         </div>
-      </div>
+      </Card>
 
-      {/* Delete button */}
-      <div className="mt-6 flex justify-end pb-8">
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-4 py-2 rounded-lg transition-colors"
-        >
-          {deleting ? 'Deleting...' : 'Delete Dog Profile'}
+      {/* Delete */}
+      <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', paddingBottom: 32 }}>
+        <button onClick={handleDelete} disabled={deleting}
+          style={{ fontSize: 12, color: 'var(--tint-red-text)', background: 'none', border: '1px solid var(--tint-red-text)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}>
+          {deleting ? 'Deleting…' : 'Delete Dog Profile'}
         </button>
       </div>
+
+      <style>{`
+        .photo-area:hover .photo-overlay { background: rgba(0,0,0,0.2) !important; }
+        .photo-area:hover .photo-label { opacity: 1 !important; }
+      `}</style>
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { PageHead, Btn, Pill } from './components/ui'
 
 interface Owner {
   name: string | null
@@ -39,6 +40,104 @@ interface TrialSummary {
   boardingEligible: boolean
   daycareFailed: boolean
   boardingFailed: boolean
+}
+
+function DogCard({ dog, dimmed = false, visitType, trial }: {
+  dog: Dog
+  dimmed?: boolean
+  visitType?: VisitType
+  trial?: TrialSummary
+}) {
+  const isHere = Boolean(visitType)
+  const isBoarding = visitType?.startsWith('Boarding')
+
+  return (
+    <Link
+      href={`/dogs/${dog.id}`}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--surface-2)',
+        borderRadius: 'var(--density-radius-card)',
+        border: `1px solid ${isHere ? 'var(--cta-purple)' : 'var(--border)'}`,
+        boxShadow: isHere ? 'var(--sh-md)' : 'var(--sh-sm)',
+        overflow: 'hidden',
+        opacity: dimmed ? 0.55 : 1,
+        filter: dimmed ? 'grayscale(0.6)' : 'none',
+        transition: 'box-shadow 150ms, border-color 150ms',
+      }}
+    >
+      {/* Photo area */}
+      <div style={{ aspectRatio: '1', background: 'var(--tint-neutral)', position: 'relative', overflow: 'hidden' }}>
+        {dog.photo_path ? (
+          <img src={dog.photo_path} alt={dog.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2 .336-3.5 2.098-3.5 4 0 .801.07 1.6.14 2.4C3 11.5 3 13 3 13.5c0 2.5 2 4.5 4.5 4.5S12 16 12 13.5c0-.5.14-1.94.14-1.94"/>
+              <path d="M14.836 5C14.836 3.67 16.165 2.62 17.836 3c1.78.397 2.996 2.098 2.996 4 0 .758-.07 1.486-.14 2.2l.144.3"/>
+              <circle cx="17" cy="15" r="2.5"/>
+              <path d="M14.5 13.5v-2"/>
+            </svg>
+          </div>
+        )}
+        {isHere && (
+          <span style={{
+            position: 'absolute', top: 8, right: 8,
+            background: isBoarding ? 'var(--tint-purple)' : 'var(--tint-gold)',
+            color: isBoarding ? 'var(--tint-purple-text)' : 'var(--tint-gold-text)',
+            fontFamily: 'var(--font-label)', fontSize: 10, letterSpacing: '0.06em', fontWeight: 600,
+            padding: '3px 7px', borderRadius: 50,
+          }}>
+            {isBoarding ? 'BOARDING' : 'DAYCARE'}
+          </span>
+        )}
+        {dimmed && (
+          <span style={{
+            position: 'absolute', top: 8, left: 8,
+            background: 'var(--tint-neutral)', color: 'var(--tint-neutral-text)',
+            fontFamily: 'var(--font-label)', fontSize: 10, letterSpacing: '0.06em', fontWeight: 600,
+            padding: '3px 7px', borderRadius: 50,
+          }}>
+            ARCHIVED
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <h2 style={{ fontFamily: 'var(--font-label)', fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: 0, letterSpacing: '0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {dog.name}
+        </h2>
+        {dog.breed && (
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {dog.breed}
+          </p>
+        )}
+        {dog.owners[0]?.name && (
+          <p style={{ fontSize: 11, color: 'var(--cta-purple)', margin: 0, fontFamily: 'var(--font-label)', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {dog.owners[0].name}
+          </p>
+        )}
+
+        {/* Badges */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+          {dog.medical_requirements && !['none', 'n/a'].includes(dog.medical_requirements.trim().toLowerCase()) && (
+            <Pill color="amber">Medical</Pill>
+          )}
+          {dog.off_lead === 'Yes'           && <Pill color="green">Off-lead</Pill>}
+          {dog.off_lead === 'Working on it' && <Pill color="gold">Lead training</Pill>}
+          {dog.off_lead === 'No'            && <Pill color="red">On-lead</Pill>}
+          {dog.is_solo && <Pill color="amber">Solo</Pill>}
+          {trial?.boardingEligible && <Pill color="purple">Boarding</Pill>}
+          {trial?.daycareEligible  && <Pill color="gold">Daycare</Pill>}
+          {!trial?.boardingEligible && trial?.boardingFailed && <Pill color="red">No boarding</Pill>}
+          {!trial?.daycareEligible  && trial?.daycareFailed  && <Pill color="red">No daycare</Pill>}
+          {!trial && <Pill color="neutral">No trial</Pill>}
+        </div>
+      </div>
+    </Link>
+  )
 }
 
 export default function HomePage() {
@@ -93,107 +192,54 @@ export default function HomePage() {
   const filtered = filterDogs(dogs)
   const filteredArchived = filterDogs(archivedDogs)
 
-  function DogCard({ dog, dimmed = false }: { dog: Dog; dimmed?: boolean }) {
-    const visitType = todayMap[dog.id]
-    const isHere    = Boolean(visitType)
-    const trial     = trialMap[dog.id]
-    return (
-      <Link
-        href={`/dogs/${dog.id}`}
-        className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-all ${dimmed ? 'opacity-50 grayscale' : ''} ${isHere ? 'border-[#2d6a4f] ring-2 ring-[#2d6a4f]/20' : 'border-gray-100 hover:border-[#2d6a4f]/30'}`}
-      >
-        <div className="aspect-square bg-gray-100 relative">
-          {dog.photo_path ? (
-            <img src={dog.photo_path} alt={dog.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-5xl text-gray-300">🐕</div>
-          )}
-          {isHere && (
-            <span className={`absolute top-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full ${visitType?.startsWith('Boarding') ? 'bg-purple-600 text-white' : 'bg-yellow-400 text-yellow-900'}`}>
-              {visitType?.startsWith('Boarding') ? '🌙' : '☀️'} {visitType}
-            </span>
-          )}
-          {dimmed && (
-            <span className="absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-white">Archived</span>
-          )}
-        </div>
-        <div className="p-3">
-          <h2 className="font-bold text-gray-800 truncate">{dog.name}</h2>
-          {dog.breed && <p className="text-xs text-gray-500 truncate mt-0.5">{dog.breed}</p>}
-          {dog.owners[0]?.name && <p className="text-xs text-[#2d6a4f] truncate mt-1">{dog.owners[0].name}</p>}
-          {dog.medical_requirements && !['none', 'n/a'].includes(dog.medical_requirements.trim().toLowerCase()) && (
-            <div className="mt-1.5">
-              <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-orange-100 text-orange-700">💊 Medical needs</span>
-            </div>
-          )}
-          {dog.off_lead && (
-            <div className="mt-1.5">
-              {dog.off_lead === 'Yes'           && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-green-100 text-green-700">🟢 Off-lead</span>}
-              {dog.off_lead === 'Working on it' && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-yellow-100 text-yellow-700">🟡 Lead training</span>}
-              {dog.off_lead === 'No'            && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-red-100 text-red-600">🔴 On-lead</span>}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-1 mt-2">
-            {dog.is_solo && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-amber-100 text-amber-700">🐶 Solo</span>}
-            {trial?.boardingEligible && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-purple-100 text-purple-700">✓ Boarding</span>}
-            {trial?.daycareEligible  && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-yellow-100 text-yellow-700">✓ Daycare</span>}
-            {!trial?.boardingEligible && trial?.boardingFailed && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-red-100 text-red-600">✗ Boarding</span>}
-            {!trial?.daycareEligible  && trial?.daycareFailed  && <span className="text-xs px-1.5 py-0.5 rounded font-semibold bg-red-100 text-red-600">✗ Daycare</span>}
-            {!trial && <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-400">No trial</span>}
-          </div>
-        </div>
-      </Link>
-    )
-  }
-
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Dog Profiles</h1>
-        <Link
-          href="/dogs/new"
-          className="inline-flex items-center gap-2 bg-[#2d6a4f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#245a41] transition-colors text-sm"
-        >
-          <span>+</span> Add Dog
-        </Link>
-      </div>
+      <PageHead title="Dog Profiles" sub={loading ? undefined : `${dogs.length} active dog${dogs.length !== 1 ? 's' : ''}`}>
+        <Btn href="/dogs/new" variant="primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Dog
+        </Btn>
+      </PageHead>
 
-      <div className="mb-6">
+      <div style={{ marginBottom: 20 }}>
         <input
           type="search"
-          placeholder="Search by dog name or owner name..."
+          placeholder="Search by dog name or owner…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] focus:border-transparent text-sm"
+          style={{ width: '100%', maxWidth: 400 }}
         />
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16 text-gray-500">Loading dogs...</div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading dogs…</div>
       ) : filtered.length === 0 && !showArchived ? (
-        <div className="text-center py-16 text-gray-500">
+        <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>
           {search ? `No dogs found matching "${search}"` : 'No dogs yet. Add your first dog!'}
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map(dog => <DogCard key={dog.id} dog={dog} />)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
+            {filtered.map(dog => (
+              <DogCard key={dog.id} dog={dog} visitType={todayMap[dog.id]} trial={trialMap[dog.id]} />
+            ))}
           </div>
 
-          {/* Archived toggle */}
           {archivedDogs.length > 0 && (
-            <div className="mt-8">
+            <div style={{ marginTop: 32 }}>
               <button
                 onClick={() => setShowArchived(v => !v)}
-                className="text-sm text-gray-400 hover:text-gray-600 font-medium transition-colors flex items-center gap-1.5"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase' }}
               >
                 <span>{showArchived ? '▼' : '▶'}</span>
                 {showArchived ? 'Hide' : 'Show'} archived ({archivedDogs.length})
               </button>
 
               {showArchived && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-                  {filteredArchived.map(dog => <DogCard key={dog.id} dog={dog} dimmed />)}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginTop: 14 }}>
+                  {filteredArchived.map(dog => (
+                    <DogCard key={dog.id} dog={dog} dimmed visitType={todayMap[dog.id]} trial={trialMap[dog.id]} />
+                  ))}
                 </div>
               )}
             </div>

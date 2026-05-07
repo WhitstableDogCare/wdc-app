@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import InvoicePrint, { type ServiceLine, type BusinessSettings } from '@/app/components/InvoicePrint'
+import { Btn, Pill } from '../../components/ui'
 
 interface Invoice {
   id: number
@@ -109,8 +110,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     router.push('/invoices')
   }
 
-  if (loading) return <div className="text-center py-16 text-gray-500">Loading...</div>
-  if (!invoice) return <div className="text-center py-16 text-gray-500">Invoice not found</div>
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
+  if (!invoice) return <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Invoice not found</div>
 
   const services: ServiceLine[] = (() => { try { return JSON.parse(invoice.services) } catch { return [] } })()
 
@@ -137,55 +138,76 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Action bar - hidden on print */}
-      <div className="flex items-center justify-between mb-4 print:hidden">
-        <div className="flex items-center gap-3">
-          <Link href="/bookings" className="text-sm text-[#2d6a4f] hover:underline">← Invoices</Link>
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${invoice.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+    <div style={{ maxWidth: 720 }}>
+      {/* Action bar — hidden on print */}
+      <div className="print:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link href="/bookings" style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>← Invoices</Link>
+          <Pill color={invoice.status === 'Paid' ? 'green' : 'amber'}>
             {invoice.status === 'Paid'
-              ? `✓ Paid${invoice.payment_method ? ` · ${invoice.payment_method}` : ''}${invoice.paid_date ? ` · ${new Date(invoice.paid_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
+              ? `Paid${invoice.payment_method ? ` · ${invoice.payment_method}` : ''}${invoice.paid_date ? ` · ${new Date(invoice.paid_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
               : 'Unpaid'}
-          </span>
+          </Pill>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Primary actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => invoice.status === 'Paid' ? handleTogglePaid() : setShowPaymentModal(true)}
             disabled={togglingPaid}
-            className={`text-sm px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-60 ${invoice.status === 'Paid' ? 'border border-gray-200 text-gray-600 hover:bg-gray-50' : 'bg-green-600 text-white hover:bg-green-700'}`}
+            style={{
+              padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+              fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+              cursor: togglingPaid ? 'not-allowed' : 'pointer', opacity: togglingPaid ? 0.6 : 1,
+              border: invoice.status === 'Paid' ? '1px solid var(--border)' : 'none',
+              background: invoice.status === 'Paid' ? 'var(--surface-3)' : 'var(--tint-green-text)',
+              color: invoice.status === 'Paid' ? 'var(--text)' : '#fff',
+            }}
           >
-            {togglingPaid ? '...' : invoice.status === 'Paid' ? 'Mark Unpaid' : 'Mark as Paid'}
+            {togglingPaid ? '…' : invoice.status === 'Paid' ? 'Mark Unpaid' : 'Mark as Paid'}
           </button>
           <button
             onClick={() => { setShowEmailModal(true); setEmailResult(null) }}
-            className="text-sm border border-[#2d6a4f] text-[#2d6a4f] px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors font-medium"
+            style={{
+              padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+              fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+              border: '1px solid var(--cta-purple)', color: 'var(--cta-purple)', background: 'transparent', cursor: 'pointer',
+            }}
           >
             Email
           </button>
           <button
             onClick={() => window.print()}
-            className="text-sm bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#245a41] transition-colors font-medium"
+            style={{
+              padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+              fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+              background: 'var(--cta-purple)', color: '#fff', border: 'none', cursor: 'pointer',
+            }}
           >
             Print / PDF
           </button>
 
-          {/* ⋯ dropdown */}
-          <div className="relative">
+          {/* Menu */}
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowMenu(m => !m)}
-              className="text-sm border border-gray-200 text-gray-600 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              style={{
+                padding: '7px 12px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                border: '1px solid var(--border)', background: 'var(--surface-3)', color: 'var(--text)', cursor: 'pointer',
+              }}
             >
               ⋯
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-20 overflow-hidden">
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowMenu(false)} />
+                <div style={{
+                  position: 'absolute', right: 0, marginTop: 4, width: 200,
+                  background: 'var(--surface-2)', borderRadius: 12, boxShadow: 'var(--sh-lg)',
+                  border: '1px solid var(--border)', zIndex: 20, overflow: 'hidden',
+                }}>
                   <Link
                     href={`/invoices/${id}/edit`}
                     onClick={() => setShowMenu(false)}
-                    className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    style={{ display: 'block', padding: '10px 16px', fontSize: 13, color: 'var(--text)', textDecoration: 'none' }}
                   >
                     Edit invoice
                   </Link>
@@ -193,7 +215,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     <Link
                       href={`/invoices/new?dogId=${invoice.dog_id}`}
                       onClick={() => setShowMenu(false)}
-                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      style={{ display: 'block', padding: '10px 16px', fontSize: 13, color: 'var(--text)', textDecoration: 'none', borderTop: '1px solid var(--border)' }}
                     >
                       New invoice for same dog
                     </Link>
@@ -201,9 +223,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   <button
                     onClick={() => { setShowMenu(false); handleDelete() }}
                     disabled={deleting}
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-100"
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: 13,
+                      color: 'var(--tint-red-text)', background: 'none', border: 'none', cursor: 'pointer',
+                      borderTop: '1px solid var(--border)',
+                    }}
                   >
-                    {deleting ? 'Deleting...' : 'Delete invoice'}
+                    {deleting ? 'Deleting…' : 'Delete invoice'}
                   </button>
                 </div>
               </>
@@ -212,34 +238,33 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-
       {/* Invoice */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', overflow: 'hidden' }}>
         <InvoicePrint invoice={invoiceData} business={business} applyDiscount={invoice.apply_discount} />
       </div>
 
-      {/* Payment method modal */}
+      {/* Payment modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 print:hidden">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
-            <h2 className="text-lg font-semibold text-[#2d2d4e] mb-2">How was this paid?</h2>
-            <p className="text-sm text-gray-500 mb-5">Select the payment method for your records.</p>
-            <div className="flex flex-col gap-3">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--surface-2)', borderRadius: 20, boxShadow: 'var(--sh-lg)', padding: 24, width: '100%', maxWidth: 340, margin: '0 16px' }}>
+            <h2 style={{ fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--text)', margin: '0 0 6px', fontWeight: 400 }}>How was this paid?</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 20px' }}>Select the payment method for your records.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
                 onClick={() => handleTogglePaid('Bank Transfer')}
-                className="w-full py-3 rounded-xl text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                style={{ padding: '12px', borderRadius: 12, fontSize: 13, fontWeight: 600, background: 'var(--tint-blue)', color: 'var(--tint-blue-text)', border: '1px solid var(--tint-blue-text)', cursor: 'pointer' }}
               >
-                🏦 Bank Transfer
+                Bank Transfer
               </button>
               <button
                 onClick={() => handleTogglePaid('Cash')}
-                className="w-full py-3 rounded-xl text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                style={{ padding: '12px', borderRadius: 12, fontSize: 13, fontWeight: 600, background: 'var(--tint-green)', color: 'var(--tint-green-text)', border: '1px solid var(--tint-green-text)', cursor: 'pointer' }}
               >
-                💵 Cash
+                Cash
               </button>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="w-full py-2 rounded-xl text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                style={{ padding: '10px', borderRadius: 12, fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -250,52 +275,37 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Email modal */}
       {showEmailModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 print:hidden">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-lg font-semibold text-[#2d2d4e] mb-4">Email Invoice #{invoice.invoice_number}</h2>
-
-            <div className="space-y-4">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--surface-2)', borderRadius: 20, boxShadow: 'var(--sh-lg)', padding: 24, width: '100%', maxWidth: 440, margin: '0 16px' }}>
+            <h2 style={{ fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--text)', margin: '0 0 16px', fontWeight: 400 }}>
+              Email Invoice #{invoice.invoice_number}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-                <input
-                  type="email"
-                  value={emailTo}
-                  onChange={e => setEmailTo(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-                />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>To</label>
+                <input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message (optional)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5 }}>Message (optional)</label>
                 <textarea
                   value={emailMessage}
                   onChange={e => setEmailMessage(e.target.value)}
-                  rows={4}
+                  rows={5}
                   placeholder={`Please find your invoice #${invoice.invoice_number} attached.\n\nThank you for staying with Whitstable Dog Care!\n\nJack\nWhitstable Dog Care`}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none"
+                  style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
                 />
               </div>
-
               {emailResult && (
-                <p className={`text-sm px-3 py-2 rounded-lg ${emailResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <p style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, background: emailResult.ok ? 'var(--tint-green)' : 'var(--tint-red)', color: emailResult.ok ? 'var(--tint-green-text)' : 'var(--tint-red-text)' }}>
                   {emailResult.msg}
                 </p>
               )}
             </div>
-
-            <div className="flex gap-2 mt-5">
-              <button
-                onClick={handleSendEmail}
-                disabled={sending || !emailTo}
-                className="flex-1 bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-50"
-              >
-                {sending ? 'Sending...' : 'Send Invoice'}
-              </button>
-              <button
-                onClick={() => setShowEmailModal(false)}
-                className="px-4 py-2 rounded-lg text-sm text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                Close
-              </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+              <Btn onClick={handleSendEmail} disabled={sending || !emailTo} variant="primary">
+                {sending ? 'Sending…' : 'Send Invoice'}
+              </Btn>
+              <Btn onClick={() => setShowEmailModal(false)} variant="secondary">Close</Btn>
             </div>
           </div>
         </div>

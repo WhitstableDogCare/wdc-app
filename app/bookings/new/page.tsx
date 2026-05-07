@@ -3,12 +3,21 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { PageHead, Btn, Pill } from '../../components/ui'
 
 interface Dog {
   id: number
   name: string
   breed: string | null
   owners: { name: string | null; email: string | null }[]
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block', fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>
+      {children}
+    </label>
+  )
 }
 
 function NewBookingInner() {
@@ -77,8 +86,8 @@ function NewBookingInner() {
     fetch(`/api/bookings/capacity?start=${startDate}&end=${end}`)
       .then(r => r.json())
       .then(d => setCapacityWarning(
-        d.count >= 5 ? `⚠️ Full — ${d.count} dogs already booked on these dates.` :
-        d.count >= 4 ? `⚠️ Nearly full — ${d.count}/5 dogs booked on these dates.` : null
+        d.count >= 5 ? `Full — ${d.count} dogs already booked on these dates.` :
+        d.count >= 4 ? `Nearly full — ${d.count}/5 dogs booked on these dates.` : null
       ))
       .catch(() => setCapacityWarning(null))
   }, [startDate, endDate, bookingType])
@@ -129,174 +138,182 @@ function NewBookingInner() {
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="max-w-xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/bookings" className="text-gray-400 hover:text-gray-600 text-sm">← Bookings</Link>
-        <h1 className="text-2xl font-bold text-gray-900">New Booking</h1>
-      </div>
+    <div style={{ maxWidth: 560 }}>
+      <PageHead title="New Booking">
+        <Btn href="/bookings" variant="secondary">Cancel</Btn>
+      </PageHead>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Dog */}
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Dog</label>
-          <select value={selectedDogId} onChange={e => setSelectedDogId(e.target.value ? parseInt(e.target.value) : '')}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white mb-2">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Dog</FieldLabel>
+          <select
+            value={selectedDogId}
+            onChange={e => setSelectedDogId(e.target.value ? parseInt(e.target.value) : '')}
+            style={{ width: '100%', marginBottom: 8 }}
+          >
             <option value="">— Select a dog —</option>
             {dogs.sort((a, b) => a.name.localeCompare(b.name)).map(d => (
               <option key={d.id} value={d.id}>{d.name}{d.breed ? ` (${d.breed})` : ''}</option>
             ))}
           </select>
-          <input type="text" value={dogName} onChange={e => setDogName(e.target.value)}
+          <input
+            type="text"
+            value={dogName}
+            onChange={e => setDogName(e.target.value)}
             placeholder="Or type dog name manually"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+            style={{ width: '100%', boxSizing: 'border-box' }}
+          />
         </div>
 
         {/* Owner */}
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Owner Name</label>
-            <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+            <FieldLabel>Owner Name</FieldLabel>
+            <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Owner Email</label>
-            <input type="email" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)}
-              placeholder="For confirmation email"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+            <FieldLabel>Owner Email</FieldLabel>
+            <input type="email" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} placeholder="For confirmation email" style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
 
         {/* Type */}
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Booking Type</label>
-          <div className="flex gap-2">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Booking Type</FieldLabel>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {(['Boarding', 'Daycare'] as const).map(t => (
-              <button key={t} onClick={() => setBookingType(t)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${bookingType === t ? 'bg-[#2d6a4f] text-white border-[#2d6a4f]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#2d6a4f]'}`}>
+              <button key={t} onClick={() => setBookingType(t)} style={{
+                flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                cursor: 'pointer', transition: 'all 150ms',
+                background: bookingType === t ? 'var(--cta-purple)' : 'var(--surface-3)',
+                color: bookingType === t ? '#fff' : 'var(--text-muted)',
+                border: `1px solid ${bookingType === t ? 'var(--cta-purple)' : 'var(--border)'}`,
+              }}>
                 {t}
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-2 mt-3 cursor-pointer">
-            <input type="checkbox" checked={isTrial} onChange={e => setIsTrial(e.target.checked)}
-              className="w-4 h-4 rounded accent-[#2d6a4f]" />
-            <span className="text-sm text-gray-700 font-medium">This is a trial booking</span>
-            {isTrial && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">{bookingType} Trial</span>}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}>
+            <input type="checkbox" checked={isTrial} onChange={e => setIsTrial(e.target.checked)} style={{ width: 16, height: 16 }} />
+            <span style={{ fontSize: 13, color: 'var(--text)' }}>This is a trial booking</span>
+            {isTrial && <Pill color="blue">{bookingType} Trial</Pill>}
           </label>
-          <label className="flex items-center gap-2 mt-2 cursor-pointer">
-            <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)}
-              className="w-4 h-4 rounded accent-[#2d6a4f]" />
-            <span className="text-sm text-gray-700 font-medium">Recurring weekly</span>
-            {isRecurring && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">🔁 Recurring</span>}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
+            <span style={{ fontSize: 13, color: 'var(--text)' }}>Recurring weekly</span>
+            {isRecurring && <Pill color="blue">Recurring</Pill>}
           </label>
         </div>
 
         {/* Dates */}
-        {isRecurring ? (
-          <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Day of Week</label>
-            <select value={dayOfWeek} onChange={e => setDayOfWeek(parseInt(e.target.value))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] bg-white">
-              <option value={1}>Monday</option>
-              <option value={2}>Tuesday</option>
-              <option value={3}>Wednesday</option>
-              <option value={4}>Thursday</option>
-              <option value={5}>Friday</option>
-              <option value={6}>Saturday</option>
-              <option value={0}>Sunday</option>
-            </select>
-            {startDate && (
-              <p className="text-xs text-[#2d6a4f] mt-1.5 font-medium">
-                First occurrence: {new Date(startDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          {isRecurring ? (
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                {bookingType === 'Boarding' ? 'Drop-off Date' : 'Date'}
-              </label>
-              <input type="date" value={startDate} min={today} onChange={e => {
-                const newStart = e.target.value
-                setStartDate(newStart)
-                if (bookingType === 'Boarding' && newStart && endDate <= newStart) {
-                  const d = new Date(newStart + 'T12:00:00')
-                  d.setDate(d.getDate() + 1)
-                  setEndDate(d.toISOString().split('T')[0])
-                }
-              }}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+              <FieldLabel>Day of Week</FieldLabel>
+              <select value={dayOfWeek} onChange={e => setDayOfWeek(parseInt(e.target.value))} style={{ width: '100%' }}>
+                <option value={1}>Monday</option>
+                <option value={2}>Tuesday</option>
+                <option value={3}>Wednesday</option>
+                <option value={4}>Thursday</option>
+                <option value={5}>Friday</option>
+                <option value={6}>Saturday</option>
+                <option value={0}>Sunday</option>
+              </select>
+              {startDate && (
+                <p style={{ fontSize: 12, color: 'var(--cta-purple)', marginTop: 6, fontWeight: 600 }}>
+                  First occurrence: {new Date(startDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
             </div>
-            {bookingType === 'Boarding' && (
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Pick-up Date</label>
-                <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+                <FieldLabel>{bookingType === 'Boarding' ? 'Drop-off Date' : 'Date'}</FieldLabel>
+                <input type="date" value={startDate} min={today} onChange={e => {
+                  const newStart = e.target.value
+                  setStartDate(newStart)
+                  if (bookingType === 'Boarding' && newStart && endDate <= newStart) {
+                    const d = new Date(newStart + 'T12:00:00')
+                    d.setDate(d.getDate() + 1)
+                    setEndDate(d.toISOString().split('T')[0])
+                  }
+                }} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
-            )}
-          </div>
-        )}
+              {bookingType === 'Boarding' && (
+                <div>
+                  <FieldLabel>Pick-up Date</FieldLabel>
+                  <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Times */}
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Drop-off Time</label>
-            <input type="time" step={900} value={dropOffTime} onChange={e => setDropOffTime(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+            <FieldLabel>Drop-off Time</FieldLabel>
+            <input type="time" step={900} value={dropOffTime} onChange={e => setDropOffTime(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Pick-up Time</label>
-            <input type="time" step={900} value={pickUpTime} onChange={e => setPickUpTime(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+            <FieldLabel>Pick-up Time</FieldLabel>
+            <input type="time" step={900} value={pickUpTime} onChange={e => setPickUpTime(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
 
+        {/* Warnings */}
         {capacityWarning && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-3 text-sm">{capacityWarning}</div>
+          <div style={{ background: 'var(--tint-gold)', border: '1px solid var(--gold)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-gold-text)' }}>
+            {capacityWarning}
+          </div>
         )}
         {soloWarnings.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm">
-            <p className="font-medium">⚠️ Solo dog conflict — {soloWarnings.map(w => w.dogName).join(', ')} {soloWarnings.length === 1 ? 'is' : 'are'} also booked on these dates. Solo dogs cannot share dates with other Solo dogs.</p>
-            <p className="mt-0.5 text-amber-600">You can still proceed if you&apos;re sure this is correct.</p>
+          <div style={{ background: 'var(--tint-amber)', border: '1px solid var(--tint-amber-text)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-amber-text)' }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>Solo dog conflict — {soloWarnings.map(w => w.dogName).join(', ')} {soloWarnings.length === 1 ? 'is' : 'are'} also booked on these dates.</p>
+            <p style={{ margin: '4px 0 0', opacity: 0.8 }}>You can still proceed if you&apos;re sure this is correct.</p>
           </div>
         )}
         {conflictWarnings.map((w, i) => (
-          <div key={i} className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">
-            <p className="font-medium">⚠️ {w.dogName} is also booked on these dates and doesn&apos;t get along with {dogName || 'this dog'}.</p>
-            {w.notes && <p className="mt-0.5 text-red-600">{w.notes}</p>}
+          <div key={i} style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-red-text)' }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>{w.dogName} is also booked on these dates and doesn&apos;t get along with {dogName || 'this dog'}.</p>
+            {w.notes && <p style={{ margin: '4px 0 0', opacity: 0.8 }}>{w.notes}</p>}
           </div>
         ))}
 
         {/* Notes */}
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Notes</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-            placeholder="Any special instructions for this booking..."
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Notes</FieldLabel>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={3}
+            placeholder="Any special instructions for this booking…"
+            style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+          />
         </div>
 
         {ownerEmail && (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={sendEmail} onChange={e => setSendEmail(e.target.checked)}
-              className="w-4 h-4 rounded accent-[#2d6a4f]" />
-            <span className="text-sm text-gray-700">Send confirmation email to owner</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+            <input type="checkbox" checked={sendEmail} onChange={e => setSendEmail(e.target.checked)} style={{ width: 16, height: 16 }} />
+            Send confirmation email to owner
           </label>
         )}
 
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
+        {error && (
+          <div style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-red-text)' }}>
+            {error}
+          </div>
+        )}
 
-        <div className="flex gap-3 pt-2">
-          <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 bg-[#2d6a4f] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#245a41] transition-colors disabled:opacity-60">
-            {saving ? 'Creating...' : 'Confirm Booking'}
-          </button>
-          <Link href="/bookings" className="px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-            Cancel
-          </Link>
+        <div style={{ display: 'flex', gap: 10, paddingBottom: 32 }}>
+          <Btn onClick={handleSubmit} disabled={saving} variant="primary">
+            {saving ? 'Creating…' : 'Confirm Booking'}
+          </Btn>
+          <Btn href="/bookings" variant="secondary">Cancel</Btn>
         </div>
-
       </div>
     </div>
   )
@@ -304,7 +321,7 @@ function NewBookingInner() {
 
 export default function NewBookingPage() {
   return (
-    <Suspense fallback={<div className="text-center py-16 text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>}>
       <NewBookingInner />
     </Suspense>
   )

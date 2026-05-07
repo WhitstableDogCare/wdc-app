@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import DogForm from '@/components/DogForm'
+import { PageHead, Btn } from '@/app/components/ui'
 
 export default function NewDogPage() {
   return (
-    <div className="max-w-2xl mx-auto">
-      <Link href="/" className="text-sm text-[#2d6a4f] hover:underline flex items-center gap-1 mb-4">
-        ← Back to all dogs
-      </Link>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Add New Dog</h1>
+    <div style={{ maxWidth: 680 }}>
+      <PageHead title="Add Dog">
+        <Btn href="/" variant="secondary">Back to dogs</Btn>
+      </PageHead>
       <DogForm mode="create" />
     </div>
   )

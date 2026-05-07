@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { PageHead, Btn } from '../../../components/ui'
 
 interface DogSummary {
   id: number
@@ -35,6 +35,25 @@ function calcNights(s: ServiceLine): number {
 }
 
 function serviceAmount(s: ServiceLine): number { return calcNights(s) * s.rate }
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block', fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>
+      {children}
+    </label>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontFamily: 'var(--font-label)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{title}</span>
+      </div>
+      <div style={{ padding: 16 }}>{children}</div>
+    </div>
+  )
+}
 
 export default function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -105,129 +124,123 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
     router.push(`/invoices/${id}`)
   }
 
-  if (loading) return <div className="text-center py-16 text-gray-500">Loading...</div>
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
+  )
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href={`/invoices/${id}`} className="text-sm text-[#2d6a4f] hover:underline">← Back to invoice</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Invoice</h1>
-      </div>
+    <div style={{ maxWidth: 720 }}>
+      <PageHead title="Edit Invoice">
+        <Btn href={`/invoices/${id}`} variant="secondary">Cancel</Btn>
+      </PageHead>
 
-      <div className="space-y-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Dog</h2>
-          <select value={selectedDogId} onChange={e => setSelectedDogId(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Section title="Dog">
+          <select value={selectedDogId} onChange={e => setSelectedDogId(e.target.value)} style={{ width: '100%' }}>
             <option value="">— Select a dog —</option>
             {dogs.map(d => <option key={d.id} value={d.id}>{d.name}{d.breed ? ` (${d.breed})` : ''}</option>)}
           </select>
-        </div>
+        </Section>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Client Details</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Section title="Client Details">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[
               { key: 'dog_name', label: 'Dog Name' }, { key: 'dog_breed', label: 'Breed' },
               { key: 'client_name', label: 'Owner Name' }, { key: 'client_email', label: 'Email' },
               { key: 'client_phone', label: 'Phone' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                <input type="text" value={form[key as keyof typeof form]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+                <FieldLabel>{label}</FieldLabel>
+                <input type="text" value={form[key as keyof typeof form]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
             ))}
-            <div className="sm:col-span-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Address</label>
-              <textarea value={form.client_address} onChange={e => setForm(f => ({ ...f, client_address: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
+            <div style={{ gridColumn: '1 / -1' }}>
+              <FieldLabel>Address</FieldLabel>
+              <textarea value={form.client_address} onChange={e => setForm(f => ({ ...f, client_address: e.target.value }))} rows={2} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
             </div>
           </div>
-        </div>
+        </Section>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Invoice Details</h2>
-          <div className="grid grid-cols-2 gap-3">
+        <Section title="Invoice Details">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Invoice Date</label>
-              <input type="date" value={form.invoice_date} onChange={e => setForm(f => ({ ...f, invoice_date: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+              <FieldLabel>Invoice Date</FieldLabel>
+              <input type="date" value={form.invoice_date} onChange={e => setForm(f => ({ ...f, invoice_date: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Due Date</label>
-              <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+              <FieldLabel>Due Date</FieldLabel>
+              <input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
           </div>
-        </div>
+        </Section>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Services</h2>
-          <div className="grid grid-cols-1 gap-2 mb-4 sm:grid-cols-2">
+        <Section title="Services">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
             {SERVICE_PRESETS.map(preset => (
-              <div key={preset.name} className="border border-gray-100 rounded-xl p-3 flex items-center justify-between gap-2">
+              <div key={preset.name} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--surface-3)' }}>
                 <div>
-                  <p className="text-sm font-medium text-gray-800">{preset.name}</p>
-                  <p className="text-xs text-gray-400">{preset.detail}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{preset.name}</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{preset.detail}</p>
                 </div>
-                <div className="flex gap-1.5">
-                  <button onClick={() => addService(preset, 'standard')} className="text-xs bg-[#2d6a4f] text-white px-2.5 py-1.5 rounded-lg hover:bg-[#245a41] transition-colors font-medium">£{preset.standard}</button>
-                  <button onClick={() => addService(preset, 'peak')} className="text-xs bg-amber-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium">£{preset.peak} peak</button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => addService(preset, 'standard')} style={{ background: 'var(--cta-purple)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-label)', whiteSpace: 'nowrap' }}>£{preset.standard}</button>
+                  <button onClick={() => addService(preset, 'peak')} style={{ background: 'var(--tint-gold-text)', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-label)', whiteSpace: 'nowrap' }}>£{preset.peak} peak</button>
                 </div>
               </div>
             ))}
           </div>
           {services.length > 0 && (
-            <div className="space-y-3 mt-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {services.map(s => (
-                <div key={s.id} className="border border-gray-100 rounded-xl p-3 bg-gray-50">
-                  <div className="flex items-start gap-2 mb-2">
-                    <input type="text" value={s.description} onChange={e => updateService(s.id, { description: e.target.value })} className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-                    <button onClick={() => removeService(s.id)} className="text-red-400 hover:text-red-600 text-sm px-2 py-1.5">✕</button>
+                <div key={s.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', background: 'var(--surface-3)' }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <input type="text" value={s.description} onChange={e => updateService(s.id, { description: e.target.value })} style={{ flex: 1, boxSizing: 'border-box' }} />
+                    <button onClick={() => removeService(s.id)} style={{ background: 'none', border: 'none', color: 'var(--tint-red-text)', cursor: 'pointer', fontSize: 14, padding: '0 6px' }}>✕</button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'end' }}>
                     <div>
-                      <label className="text-xs text-gray-500 block mb-1">Start Date</label>
-                      <input type="date" value={s.startDate} onChange={e => updateService(s.id, { startDate: e.target.value })} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+                      <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Start Date</label>
+                      <input type="date" value={s.startDate} onChange={e => updateService(s.id, { startDate: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }} />
                     </div>
                     {s.type === 'boarding' ? (
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">End Date</label>
-                        <input type="date" value={s.endDate} onChange={e => updateService(s.id, { endDate: e.target.value })} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+                        <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>End Date</label>
+                        <input type="date" value={s.endDate} onChange={e => updateService(s.id, { endDate: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }} />
                       </div>
                     ) : (
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Days</label>
-                        <input type="number" min={1} value={s.quantity} onChange={e => updateService(s.id, { quantity: parseInt(e.target.value) || 1 })} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+                        <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Days</label>
+                        <input type="number" min={1} value={s.quantity} onChange={e => updateService(s.id, { quantity: parseInt(e.target.value) || 1 })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }} />
                       </div>
                     )}
                     <div>
-                      <label className="text-xs text-gray-500 block mb-1">Rate (£)</label>
-                      <input type="number" min={0} step={0.01} value={s.rate} onChange={e => updateService(s.id, { rate: parseFloat(e.target.value) || 0 })} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+                      <label style={{ fontSize: 10, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Rate (£)</label>
+                      <input type="number" min={0} step={0.01} value={s.rate} onChange={e => updateService(s.id, { rate: parseFloat(e.target.value) || 0 })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }} />
                     </div>
-                    <div className="flex items-end">
-                      <p className="text-sm font-semibold text-gray-800">£{serviceAmount(s).toFixed(2)}</p>
-                    </div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0, textAlign: 'right', whiteSpace: 'nowrap' }}>£{serviceAmount(s).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Section>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-800 mb-3">Notes & Options</h2>
-          <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Any additional notes..." className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none mb-3" />
-          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <input type="checkbox" checked={applyDiscount} onChange={e => setApplyDiscount(e.target.checked)} className="rounded" />
+        <Section title="Notes & Options">
+          <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Any additional notes…" style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', marginBottom: 12 }} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+            <input type="checkbox" checked={applyDiscount} onChange={e => setApplyDiscount(e.target.checked)} style={{ width: 16, height: 16 }} />
             Apply 10% loyalty discount
           </label>
-        </div>
+        </Section>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <div>
-            {applyDiscount && <p className="text-sm text-gray-500">Subtotal: £{subtotal.toFixed(2)}</p>}
-            <p className="text-xl font-bold text-gray-900">Total: £{total.toFixed(2)}</p>
+            {applyDiscount && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 2px' }}>Subtotal: £{subtotal.toFixed(2)}</p>}
+            <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Total: £{total.toFixed(2)}</p>
           </div>
-          <button onClick={handleSave} disabled={saving} className="bg-[#2d6a4f] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[#245a41] transition-colors disabled:opacity-60">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+          <Btn onClick={handleSave} disabled={saving} variant="primary">
+            {saving ? 'Saving…' : 'Save Changes'}
+          </Btn>
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Btn, Pill } from '../../components/ui'
 
 interface Incident {
   id: number
@@ -23,6 +25,25 @@ interface Dog { id: number; name: string }
 function fmt(date: string | null) {
   if (!date) return '—'
   return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block', fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>
+      {children}
+    </label>
+  )
+}
+
+function TextBlock({ title, content }: { title: string; content: string | null }) {
+  return (
+    <div>
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{title}</h3>
+      <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', margin: 0 }}>
+        {content || <span style={{ color: 'var(--text-muted)' }}>Not recorded.</span>}
+      </p>
+    </div>
+  )
 }
 
 export default function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -75,162 +96,135 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
     router.push('/')
   }
 
-  if (!incident) return <div className="p-8 text-gray-400 text-sm">Loading...</div>
+  if (!incident) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
+  )
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div style={{ maxWidth: 640 }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
-            ← Back
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-gray-800">Incident Report</span>
-              <span className="text-xs bg-red-100 text-red-600 font-semibold px-2 py-0.5 rounded-full">⚠ Incident</span>
-            </div>
-            {incident.dog && (
-              <a href={`/dogs/${incident.dog.id}`} className="text-sm text-[#2d6a4f] hover:underline">
-                {incident.dog.name}
-              </a>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="text-sm border border-gray-200 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Edit
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)', padding: 0 }}>
+              ← Back
             </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--text)', margin: 0 }}>
+              Incident Report
+            </h1>
+            <Pill color="red">Incident</Pill>
+          </div>
+          {incident.dog && (
+            <Link href={`/dogs/${incident.dog.id}`} style={{ fontSize: 13, color: 'var(--cta-purple)', textDecoration: 'none', display: 'block', marginTop: 4 }}>
+              {incident.dog.name}
+            </Link>
           )}
         </div>
+        {!editing && (
+          <Btn onClick={() => setEditing(true)} variant="secondary">Edit</Btn>
+        )}
       </div>
 
       {editing ? (
-        /* ── Edit mode ── */
-        <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Dog</label>
-            <select value={form.dog_id} onChange={e => set('dog_id', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]">
+        /* Edit mode */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Dog</FieldLabel>
+            <select value={form.dog_id} onChange={e => set('dog_id', e.target.value)} style={{ width: '100%' }}>
               <option value="">— None —</option>
               {dogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Completed by</label>
-            <input type="text" value={form.completed_by} onChange={e => set('completed_by', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Completed by</FieldLabel>
+            <input type="text" value={form.completed_by} onChange={e => set('completed_by', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
-              <input type="date" value={form.incident_date} onChange={e => set('incident_date', e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+              <FieldLabel>Date</FieldLabel>
+              <input type="date" value={form.incident_date} onChange={e => set('incident_date', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Time</label>
-              <input type="time" value={form.incident_time} onChange={e => set('incident_time', e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+              <FieldLabel>Time</FieldLabel>
+              <input type="time" value={form.incident_time} onChange={e => set('incident_time', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Location</label>
-            <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Location</FieldLabel>
+            <input type="text" value={form.location} onChange={e => set('location', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Staff witnesses</label>
-            <input type="text" value={form.witnesses} onChange={e => set('witnesses', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Staff witnesses</FieldLabel>
+            <input type="text" value={form.witnesses} onChange={e => set('witnesses', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
-            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={5}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Description</FieldLabel>
+            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={5} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Root causes</label>
-            <textarea value={form.root_causes} onChange={e => set('root_causes', e.target.value)} rows={4}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Root causes</FieldLabel>
+            <textarea value={form.root_causes} onChange={e => set('root_causes', e.target.value)} rows={4} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Prevention measures</label>
-            <textarea value={form.prevention_measures} onChange={e => set('prevention_measures', e.target.value)} rows={4}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+            <FieldLabel>Prevention measures</FieldLabel>
+            <textarea value={form.prevention_measures} onChange={e => set('prevention_measures', e.target.value)} rows={4} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
           </div>
-          <div className="flex gap-3 pt-2">
-            <button onClick={handleSave} disabled={saving}
-              className="bg-[#2d6a4f] text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#245a41] transition-colors disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button onClick={() => setEditing(false)}
-              className="px-6 py-2.5 rounded-xl font-semibold text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-              Cancel
-            </button>
+          <div style={{ display: 'flex', gap: 10, paddingBottom: 32 }}>
+            <Btn onClick={handleSave} disabled={saving} variant="primary">
+              {saving ? 'Saving…' : 'Save Changes'}
+            </Btn>
+            <Btn onClick={() => setEditing(false)} variant="secondary">Cancel</Btn>
           </div>
         </div>
       ) : (
-        /* ── View mode ── */
-        <div className="space-y-6">
-          {/* Meta */}
-          <div className="bg-gray-50 rounded-2xl p-5 grid grid-cols-2 gap-4 text-sm">
+        /* View mode */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Meta grid */}
+          <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</span>
-              <p className="text-gray-800 mt-0.5 font-medium">{fmt(incident.incident_date)}</p>
+              <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 3px' }}>Date</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{fmt(incident.incident_date)}</p>
             </div>
             <div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Time</span>
-              <p className="text-gray-800 mt-0.5 font-medium">{incident.incident_time ?? '—'}</p>
+              <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 3px' }}>Time</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{incident.incident_time ?? '—'}</p>
             </div>
             <div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Location</span>
-              <p className="text-gray-800 mt-0.5">{incident.location ?? '—'}</p>
+              <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 3px' }}>Location</p>
+              <p style={{ fontSize: 13, color: 'var(--text)', margin: 0 }}>{incident.location ?? '—'}</p>
             </div>
             <div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Completed by</span>
-              <p className="text-gray-800 mt-0.5">{incident.completed_by ?? '—'}</p>
+              <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 3px' }}>Completed by</p>
+              <p style={{ fontSize: 13, color: 'var(--text)', margin: 0 }}>{incident.completed_by ?? '—'}</p>
             </div>
             {incident.witnesses && (
-              <div className="col-span-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Staff witnesses</span>
-                <p className="text-gray-800 mt-0.5">{incident.witnesses}</p>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 3px' }}>Staff witnesses</p>
+                <p style={{ fontSize: 13, color: 'var(--text)', margin: 0 }}>{incident.witnesses}</p>
               </div>
             )}
           </div>
 
-          {/* Description */}
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Description of the incident</h3>
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap bg-white border border-gray-100 rounded-xl p-4">
-              {incident.description || <span className="text-gray-400">No description recorded.</span>}
-            </p>
-          </div>
-
-          {/* Root causes */}
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Root causes</h3>
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap bg-white border border-gray-100 rounded-xl p-4">
-              {incident.root_causes || <span className="text-gray-400">Not recorded.</span>}
-            </p>
-          </div>
-
-          {/* Prevention */}
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Matters undertaken to prevent recurrence</h3>
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap bg-white border border-gray-100 rounded-xl p-4">
-              {incident.prevention_measures || <span className="text-gray-400">Not recorded.</span>}
-            </p>
-          </div>
+          <TextBlock title="Description of the incident" content={incident.description} />
+          <TextBlock title="Root causes" content={incident.root_causes} />
+          <TextBlock title="Matters undertaken to prevent recurrence" content={incident.prevention_measures} />
 
           {/* Delete */}
-          <div className="pt-4 border-t border-gray-100 flex justify-end">
-            <button onClick={handleDelete} disabled={deleting}
-              className="text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-4 py-2 rounded-lg transition-colors">
-              {deleting ? 'Deleting...' : 'Delete Incident Report'}
+          <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', paddingBottom: 32 }}>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{
+                padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1,
+                background: 'var(--tint-red)', color: 'var(--tint-red-text)',
+                border: '1px solid var(--tint-red-text)',
+              }}
+            >
+              {deleting ? 'Deleting…' : 'Delete Incident Report'}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { PageHead, Card, Pill, StatTile } from '../components/ui'
 
 type VisitType = 'Boarding' | 'Daycare' | 'Boarding Trial' | 'Daycare Trial'
 
@@ -57,7 +58,6 @@ function nightsBetween(start: string, end: string) {
   return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000))
 }
 
-// UK tax year: 6 Apr → 5 Apr
 function getTaxYearStart(date: Date): Date {
   const m = date.getMonth(), d = date.getDate(), y = date.getFullYear()
   const startYear = (m > 3 || (m === 3 && d >= 6)) ? y : y - 1
@@ -69,43 +69,25 @@ function getTaxYearEnd(start: Date): Date {
 function taxYearLabel(start: Date): string {
   return `${start.getFullYear()}/${String(start.getFullYear() + 1).slice(2)}`
 }
-
 function isInPeriod(start: string, end: string, from: Date, to: Date) {
   const s = new Date(start), e = new Date(end)
   return s < to && e > from
 }
 
-function StatCard({ label, value, sub, href, color = 'gray' }: {
-  label: string; value: number | string; sub?: string; href?: string; color?: string
-}) {
-  const colorMap: Record<string, string> = {
-    green:  'bg-green-50 text-green-700',
-    purple: 'bg-purple-50 text-purple-700',
-    yellow: 'bg-yellow-50 text-yellow-700',
-    red:    'bg-red-50 text-red-700',
-    blue:   'bg-blue-50 text-blue-700',
-    gray:   'bg-gray-50 text-gray-700',
-  }
-  const cls = colorMap[color] ?? colorMap.gray
-  const inner = (
-    <div className={`${cls} rounded-xl p-4 text-center h-full`}>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs font-medium mt-0.5 opacity-80">{label}</p>
-      {sub && <p className="text-xs opacity-60 mt-0.5">{sub}</p>}
-    </div>
-  )
-  return href ? <Link href={href}>{inner}</Link> : <div>{inner}</div>
-}
-
-function MiniBar({ label, value, max }: { label: string; value: number; max: number }) {
+function MiniBar({ label, value, max, href }: { label: string; value: number; max: number; href?: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
+  const labelEl = href
+    ? <Link href={href} style={{ color: 'var(--cta-purple)' }}>{label}</Link>
+    : <span>{label}</span>
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-xs text-gray-600 w-32 truncate flex-shrink-0">{label}</span>
-      <div className="flex-1 bg-gray-100 rounded-full h-2">
-        <div className="bg-[#2d6a4f] h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+      <span style={{ fontSize: 12, color: 'var(--text-muted)', width: 120, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {labelEl}
+      </span>
+      <div style={{ flex: 1, background: 'var(--tint-neutral)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--cta-purple)', height: 6, borderRadius: 4, width: `${pct}%`, transition: 'width 400ms ease' }} />
       </div>
-      <span className="text-xs font-semibold text-gray-700 w-5 text-right">{value}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', width: 24, textAlign: 'right', flexShrink: 0 }}>{value}</span>
     </div>
   )
 }
@@ -115,17 +97,25 @@ function MonthBar({ month, boarding, daycare, income, max }: { month: string; bo
   const pct = max > 0 ? Math.round((total / max) * 100) : 0
   const incomeLabel = income >= 1000 ? `£${(income / 1000).toFixed(1)}k` : income > 0 ? `£${Math.round(income)}` : ''
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-xs text-gray-500 w-8 flex-shrink-0">{month}</span>
-      <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
-        <div className="h-3 flex rounded-full overflow-hidden" style={{ width: `${pct}%` }}>
-          <div className="bg-purple-400 h-full" style={{ width: boarding + daycare > 0 ? `${Math.round(boarding / total * 100)}%` : '0' }} />
-          <div className="bg-yellow-300 h-full" style={{ width: boarding + daycare > 0 ? `${Math.round(daycare / total * 100)}%` : '0' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+      <span style={{ fontSize: 11, color: 'var(--text-dim)', width: 36, flexShrink: 0 }}>{month}</span>
+      <div style={{ flex: 1, background: 'var(--tint-neutral)', borderRadius: 4, height: 10, overflow: 'hidden' }}>
+        <div style={{ height: 10, display: 'flex', width: `${pct}%` }}>
+          <div style={{ background: 'var(--purple)', height: '100%', width: boarding + daycare > 0 ? `${Math.round(boarding / total * 100)}%` : '0' }} />
+          <div style={{ background: 'var(--gold)', height: '100%', width: boarding + daycare > 0 ? `${Math.round(daycare / total * 100)}%` : '0' }} />
         </div>
       </div>
-      <span className="text-xs text-gray-400 w-6 text-right">{total}</span>
-      <span className="text-xs font-semibold text-green-600 w-14 text-right flex-shrink-0">{incomeLabel}</span>
+      <span style={{ fontSize: 11, color: 'var(--text-dim)', width: 20, textAlign: 'right', flexShrink: 0 }}>{total || ''}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--tint-green-text)', width: 52, textAlign: 'right', flexShrink: 0 }}>{incomeLabel}</span>
     </div>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'var(--text-dim)', fontWeight: 500, marginBottom: 8, marginTop: 0 }}>
+      {children}
+    </p>
   )
 }
 
@@ -168,7 +158,13 @@ export default function DashboardPage() {
     }).catch(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-center py-16 text-gray-500">Loading dashboard...</div>
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--text-muted)' }}>
+        Loading dashboard…
+      </div>
+    )
+  }
 
   const now      = new Date()
   const somStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -178,18 +174,15 @@ export default function DashboardPage() {
 
   const pastEvents = events.filter(e => new Date(e.end) < now)
 
-  // This month calendar stats
   const monthEvents = events.filter(e => isInPeriod(e.start, e.end, somStart, somEnd))
   const monthBoardingNights = monthEvents.filter(e => e.visitType === 'Boarding').reduce((s, e) => s + nightsBetween(e.start, e.end), 0)
   const monthDaycareDays    = monthEvents.filter(e => e.visitType === 'Daycare').reduce((s, e) => s + Math.max(1, nightsBetween(e.start, e.end)), 0)
   const monthTrials         = monthEvents.filter(e => e.visitType.includes('Trial')).length
 
-  // This year calendar stats
   const yearEvents = events.filter(e => isInPeriod(e.start, e.end, soyStart, soyEnd))
   const yearBoardingNights = yearEvents.filter(e => e.visitType === 'Boarding').reduce((s, e) => s + nightsBetween(e.start, e.end), 0)
   const yearDaycareDays    = yearEvents.filter(e => e.visitType === 'Daycare').reduce((s, e) => s + Math.max(1, nightsBetween(e.start, e.end)), 0)
 
-  // Today's guests — compare dates only, not times
   const todayStr = now.toISOString().split('T')[0]
   const calToday = events.filter(e => e.start.split('T')[0] <= todayStr && e.end.split('T')[0] >= todayStr)
   const calNames = new Set(calToday.map(e => e.dogName.toLowerCase()))
@@ -199,7 +192,6 @@ export default function DashboardPage() {
     ...bookingOnlyToday,
   ]
 
-  // Busiest months (last 12)
   const monthData: Record<string, { boarding: number; daycare: number; income: number }> = {}
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -220,7 +212,6 @@ export default function DashboardPage() {
   }
   const maxMonthTotal = Math.max(...Object.values(monthData).map(m => m.boarding + m.daycare), 1)
 
-  // Top guests (past bookings only)
   const guestMap: Record<string, { count: number; dogId: number | null }> = {}
   for (const e of pastEvents) {
     if (!guestMap[e.dogName]) guestMap[e.dogName] = { count: 0, dogId: e.dogId }
@@ -231,7 +222,6 @@ export default function DashboardPage() {
     .slice(0, 6)
   const maxGuest = topGuests[0]?.[1].count ?? 1
 
-  // Tax year invoice helpers
   function taxYearInvoices(start: Date): Invoice[] {
     const s = start.toISOString().split('T')[0]
     const e = new Date(start.getFullYear() + 1, 3, 6).toISOString().split('T')[0]
@@ -257,7 +247,6 @@ export default function DashboardPage() {
     return Array.from(years).sort((a, b) => b - a).map(y => new Date(y, 3, 6))
   }
 
-  // Invoice stats
   const todayStr2 = now.toISOString().split('T')[0]
   const unpaidInvoices = invoices.filter(i => i.status !== 'Paid' && i.status !== 'Void')
   const overdueInvoices = unpaidInvoices.filter(i => i.due_date && i.due_date < todayStr2)
@@ -269,40 +258,75 @@ export default function DashboardPage() {
 
   const ds = dogStats!
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+  const monthName = now.toLocaleDateString('en-GB', { month: 'long' })
 
-      {/* Today */}
+  return (
+    <div style={{ maxWidth: 860, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHead title="Dashboard" eyebrow="Whitstable Dog Care" />
+
+      {/* Today hero card */}
       {(todayGuests.length > 0 || todayTasks.length > 0) && (
-        <div className="bg-[#2d6a4f] text-white rounded-2xl p-5">
-          <h2 className="font-bold text-lg mb-3">🐾 With You Today</h2>
+        <div style={{
+          background: 'var(--gold)',
+          borderRadius: 'var(--density-radius-card)',
+          padding: '20px 22px',
+          boxShadow: 'var(--sh-md)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Botanical decoration */}
+          <img
+            src="/botanical-paw.png"
+            alt=""
+            aria-hidden="true"
+            style={{ position: 'absolute', right: -10, bottom: -10, width: 100, opacity: 0.18, pointerEvents: 'none' }}
+          />
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--charcoal)', margin: '0 0 12px' }}>
+            With You Today
+          </h2>
           {todayGuests.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {todayGuests.map(e => (
                 <Link
                   key={e.uid ?? e.dogName}
                   href={e.dogId ? `/dogs/${e.dogId}` : '#'}
-                  className="bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-full text-sm font-medium"
+                  style={{
+                    background: 'rgba(255,255,255,0.6)',
+                    borderRadius: 50,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--charcoal)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontFamily: 'var(--font-label)',
+                    letterSpacing: '0.04em',
+                  }}
                 >
-                  {e.visitType.startsWith('Boarding') ? '🌙' : '☀️'} {e.dogName}
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>
+                    {e.visitType.startsWith('Boarding') ? 'BOARDING' : 'DAYCARE'}
+                  </span>
+                  {e.dogName}
                 </Link>
               ))}
             </div>
           )}
           {todayTasks.length > 0 && (
-            <div className={`${todayGuests.length > 0 ? 'mt-4 pt-4 border-t border-white/20' : ''}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/60 mb-2">📋 Tasks Due Today</p>
-              <div className="space-y-1.5">
+            <div style={{ marginTop: todayGuests.length > 0 ? 16 : 0 }}>
+              <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'rgba(61,61,61,0.6)', marginBottom: 8 }}>
+                Tasks Due Today
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {todayTasks.map(task => (
-                  <div key={task.id} className="flex items-start gap-2 text-sm">
-                    <span className="text-white/40 mt-0.5">•</span>
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
+                    <span style={{ color: 'rgba(61,61,61,0.4)', marginTop: 2 }}>•</span>
                     <div>
-                      <span className="font-medium">{task.title}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--charcoal)' }}>{task.title}</span>
                       {task.listTitle && task.listTitle !== 'My Tasks' && (
-                        <span className="text-white/50 text-xs ml-2">{task.listTitle}</span>
+                        <span style={{ color: 'rgba(61,61,61,0.5)', fontSize: 11, marginLeft: 8 }}>{task.listTitle}</span>
                       )}
-                      {task.notes && <p className="text-white/60 text-xs mt-0.5">{task.notes}</p>}
+                      {task.notes && <p style={{ color: 'rgba(61,61,61,0.6)', fontSize: 11, marginTop: 2 }}>{task.notes}</p>}
                     </div>
                   </div>
                 ))}
@@ -314,75 +338,92 @@ export default function DashboardPage() {
 
       {/* This month */}
       <div>
-        <h2 className="font-semibold text-gray-700 mb-3">This Month</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Boarding Nights" value={monthBoardingNights} color="purple" />
-          <StatCard label="Daycare Days"    value={monthDaycareDays}    color="yellow" />
-          <StatCard label="Trials"          value={monthTrials}         color="blue"   />
+        <SectionLabel>{monthName} — this month</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <StatTile value={monthBoardingNights} label="Boarding Nights" tint="purple" />
+          <StatTile value={monthDaycareDays}    label="Daycare Days"    tint="gold"   />
+          <StatTile value={monthTrials}         label="Trials"          tint="blue"   />
         </div>
       </div>
 
       {/* This tax year */}
       <div>
-        <h2 className="font-semibold text-gray-700 mb-3">Tax Year {taxYearLabel(soyStart)}</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Boarding Nights" value={yearBoardingNights} color="purple" />
-          <StatCard label="Daycare Days"    value={yearDaycareDays}    color="yellow" />
-          <StatCard label="New Clients"     value={ds.newThisYear}     color="green"  />
+        <SectionLabel>Tax Year {taxYearLabel(soyStart)}</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          <StatTile value={yearBoardingNights} label="Boarding Nights" tint="purple" />
+          <StatTile value={yearDaycareDays}    label="Daycare Days"    tint="gold"   />
+          <StatTile value={ds.newThisYear}     label="New Clients"     tint="green"  />
         </div>
       </div>
 
       {/* Pending invoices nudge */}
       {pendingInvoiceCount > 0 && (
         <Link href="/invoices/bulk"
-          className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 hover:bg-amber-100 transition-colors">
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'var(--tint-amber)', borderRadius: 'var(--density-radius-card)',
+            padding: '14px 18px', border: '1px solid var(--tint-amber-text)',
+          }}>
           <div>
-            <p className="font-semibold text-amber-800">📤 {pendingInvoiceCount} booking{pendingInvoiceCount !== 1 ? 's' : ''} need{pendingInvoiceCount === 1 ? 's' : ''} invoicing</p>
-            <p className="text-xs text-amber-600 mt-0.5">Upcoming confirmed bookings without an invoice</p>
+            <p style={{ fontWeight: 600, color: 'var(--tint-amber-text)', margin: 0, fontSize: 14 }}>
+              {pendingInvoiceCount} booking{pendingInvoiceCount !== 1 ? 's' : ''} need{pendingInvoiceCount === 1 ? 's' : ''} invoicing
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--tint-amber-text)', opacity: 0.8, marginTop: 2 }}>Upcoming confirmed bookings without an invoice</p>
           </div>
-          <span className="text-amber-600 text-sm font-medium">Send Invoices →</span>
+          <span style={{ fontFamily: 'var(--font-label)', fontSize: 12, letterSpacing: '0.06em', color: 'var(--tint-amber-text)', fontWeight: 600 }}>
+            Send Invoices →
+          </span>
         </Link>
       )}
 
       {/* Invoices */}
       {invoices.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Invoices</h2>
-            <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
-              {currentTYLabel} tax year
-            </span>
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Invoices</h2>
+            <Pill color="neutral">{currentTYLabel} tax year</Pill>
           </div>
 
-          {/* Current tax year stats */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <StatCard label="Invoiced" value={`£${currentTY.total.toFixed(0)}`} sub={`${currentTY.count} invoice${currentTY.count !== 1 ? 's' : ''}`} color="blue" />
-            <StatCard label="Paid" value={`£${currentTY.paid.toFixed(0)}`} color="green" />
-            <StatCard label="Outstanding" value={`£${currentTY.unpaid.toFixed(0)}`}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+            <StatTile value={`£${currentTY.total.toFixed(0)}`} label="Invoiced" sub={`${currentTY.count} invoice${currentTY.count !== 1 ? 's' : ''}`} tint="blue" />
+            <StatTile value={`£${currentTY.paid.toFixed(0)}`}  label="Paid"     tint="green" />
+            <StatTile value={`£${currentTY.unpaid.toFixed(0)}`} label="Outstanding"
               sub={currentTY.unpaid > 0 ? `${currentTY.invoices.filter(i => i.status !== 'Paid').length} unpaid` : undefined}
-              color={currentTY.unpaid > 0 ? 'red' : 'gray'} />
+              tint={currentTY.unpaid > 0 ? 'red' : 'neutral'} />
           </div>
 
-          {/* Unpaid invoices */}
           {unpaidInvoices.length > 0 && (
-            <div className="mb-5">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Unpaid Invoices {overdueInvoices.length > 0 && <span className="text-red-500 ml-1">({overdueInvoices.length} overdue)</span>}
-              </p>
-              <div className="space-y-1">
+            <div style={{ marginBottom: 20 }}>
+              <SectionLabel>
+                Unpaid Invoices
+                {overdueInvoices.length > 0 && (
+                  <span style={{ color: 'var(--tint-red-text)', marginLeft: 6 }}>({overdueInvoices.length} overdue)</span>
+                )}
+              </SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {unpaidInvoices.sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')).map(inv => {
                   const isOverdue = inv.due_date && inv.due_date < todayStr2
                   return (
                     <Link key={inv.id} href={`/invoices/${inv.id}`}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="font-mono text-xs text-[#2d6a4f] font-semibold">#{inv.invoice_number}</span>
-                        <span className="text-sm text-gray-700 truncate">{inv.dog_name || inv.client_name || '—'}</span>
-                        {isOverdue && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-semibold flex-shrink-0">Overdue</span>}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 8, transition: 'background 120ms' }}
+                      className="hover-row"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <span style={{ fontFamily: 'var(--font-label)', fontSize: 11, color: 'var(--cta-purple)', fontWeight: 600, letterSpacing: '0.04em', flexShrink: 0 }}>
+                          #{inv.invoice_number}
+                        </span>
+                        <span style={{ fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {inv.dog_name || inv.client_name || '—'}
+                        </span>
+                        {isOverdue && <Pill color="red">Overdue</Pill>}
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        {inv.due_date && <span className="text-xs text-gray-400">Due {new Date(inv.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>}
-                        <span className="text-sm font-semibold text-gray-800">£{inv.total.toFixed(2)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                        {inv.due_date && (
+                          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                            Due {new Date(inv.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>£{inv.total.toFixed(2)}</span>
                       </div>
                     </Link>
                   )
@@ -391,31 +432,29 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Tax year history */}
           {pastTaxYears.length > 0 && (
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Previous Tax Years</p>
-              <div className="space-y-2">
+              <SectionLabel>Previous Tax Years</SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {pastTaxYears.map(yearStart => {
                   const stats = taxYearStats(yearStart)
                   const label = taxYearLabel(yearStart)
                   const paidPct = stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 100
                   return (
-                    <div key={label} className="rounded-xl border border-gray-100 px-4 py-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-gray-700">{label}</span>
-                        <span className="text-xs text-gray-400">{stats.count} invoice{stats.count !== 1 ? 's' : ''}</span>
+                    <div key={label} style={{ borderRadius: 10, border: '1px solid var(--border)', padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{stats.count} invoice{stats.count !== 1 ? 's' : ''}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-xs mb-2">
-                        <span className="text-gray-500">Invoiced <span className="font-semibold text-gray-800">£{stats.total.toFixed(0)}</span></span>
-                        <span className="text-gray-500">Paid <span className="font-semibold text-green-600">£{stats.paid.toFixed(0)}</span></span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, marginBottom: 8 }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Invoiced <strong style={{ color: 'var(--text)' }}>£{stats.total.toFixed(0)}</strong></span>
+                        <span style={{ color: 'var(--text-muted)' }}>Paid <strong style={{ color: 'var(--tint-green-text)' }}>£{stats.paid.toFixed(0)}</strong></span>
                         {stats.unpaid > 0 && (
-                          <span className="text-gray-500">Outstanding <span className="font-semibold text-red-500">£{stats.unpaid.toFixed(0)}</span></span>
+                          <span style={{ color: 'var(--text-muted)' }}>Outstanding <strong style={{ color: 'var(--tint-red-text)' }}>£{stats.unpaid.toFixed(0)}</strong></span>
                         )}
                       </div>
-                      {/* Paid progress bar */}
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-400 rounded-full transition-all" style={{ width: `${paidPct}%` }} />
+                      <div style={{ height: 4, background: 'var(--tint-neutral)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: 4, background: 'var(--status-available)', borderRadius: 4, width: `${paidPct}%` }} />
                       </div>
                     </div>
                   )
@@ -423,87 +462,84 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Dogs */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="font-semibold text-gray-700 mb-4">Dogs ({ds.total})</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          <StatCard label="Total Dogs"    value={ds.total}        color="green"  href="/"      />
-          <StatCard label="New This Month" value={ds.newThisMonth} color="blue"               />
-          <StatCard label="No Photo"      value={ds.withoutPhoto} color="gray"   href="/"      />
-          <StatCard label="No Vet Registered" value={ds.noVet}    color="gray"               />
+      <Card>
+        <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Dogs ({ds.total})</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 }}>
+          <StatTile value={ds.total}        label="Total Dogs"     tint="green"  href="/"  />
+          <StatTile value={ds.newThisMonth} label="New This Month" tint="blue"             />
+          <StatTile value={ds.withoutPhoto} label="No Photo"       tint="neutral" href="/" />
+          <StatTile value={ds.noVet}        label="No Vet Registered" tint="neutral"       />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Sex */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Sex</p>
+            <SectionLabel>Sex</SectionLabel>
             {Object.entries(ds.sexBreakdown).map(([k, v]) => (
               <MiniBar key={k} label={k} value={v} max={ds.total} />
             ))}
           </div>
-
-          {/* Neutered */}
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Neutered</p>
+            <SectionLabel>Neutered</SectionLabel>
             <MiniBar label="Neutered" value={ds.neuteredCount}   max={ds.total} />
             <MiniBar label="Intact"   value={ds.intactCount}     max={ds.total} />
             <MiniBar label="Unknown"  value={ds.unknownNeutered} max={ds.total} />
           </div>
-
-          {/* Energy */}
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Energy Level</p>
+            <SectionLabel>Energy Level</SectionLabel>
             {Object.entries(ds.energyBreakdown).sort((a,b) => b[1]-a[1]).map(([k, v]) => (
               <MiniBar key={k} label={k} value={v} max={ds.total} />
             ))}
           </div>
-
-          {/* Top breeds */}
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Top Breeds</p>
+            <SectionLabel>Top Breeds</SectionLabel>
             {ds.topBreeds.map(([breed, count]) => (
               <MiniBar key={breed} label={breed} value={count} max={ds.topBreeds[0]?.[1] ?? 1} />
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Bookings over time */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-center gap-4 mb-4">
-          <h2 className="font-semibold text-gray-700">Bookings — Last 12 Months</h2>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-purple-400 inline-block" /> Boarding</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 inline-block" /> Daycare</span>
-            <span className="flex items-center gap-1"><span className="font-semibold text-green-600">£</span> Income</span>
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Bookings — Last 12 Months</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11, color: 'var(--text-muted)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--purple)', display: 'inline-block' }} />
+              Boarding
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--gold)', display: 'inline-block' }} />
+              Daycare
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <strong style={{ color: 'var(--tint-green-text)' }}>£</strong>
+              Income
+            </span>
           </div>
         </div>
         {Object.entries(monthData).map(([month, { boarding, daycare, income }]) => (
           <MonthBar key={month} month={month} boarding={boarding} daycare={daycare} income={income} max={maxMonthTotal} />
         ))}
-      </div>
+      </Card>
 
       {/* Top guests */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="font-semibold text-gray-700 mb-4">Most Frequent Guests</h2>
-        <div className="space-y-1">
+      <Card>
+        <h2 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Most Frequent Guests</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {topGuests.map(([name, { count, dogId }]) => (
-            <div key={name} className="flex items-center gap-2 py-1">
-              <span className="text-xs text-gray-600 w-24 truncate flex-shrink-0">
-                {dogId ? <Link href={`/dogs/${dogId}`} className="hover:text-[#2d6a4f] hover:underline">{name}</Link> : name}
-              </span>
-              <div className="flex-1 bg-gray-100 rounded-full h-2">
-                <div className="bg-[#2d6a4f] h-2 rounded-full" style={{ width: `${Math.round(count / maxGuest * 100)}%` }} />
-              </div>
-              <span className="text-xs font-semibold text-gray-700 w-8 text-right">{count} visits</span>
-            </div>
+            <MiniBar key={name} label={name} value={count} max={maxGuest} href={dogId ? `/dogs/${dogId}` : undefined} />
           ))}
         </div>
-      </div>
+      </Card>
 
+      <style>{`
+        .hover-row:hover { background: var(--surface-app); }
+      `}</style>
     </div>
   )
 }

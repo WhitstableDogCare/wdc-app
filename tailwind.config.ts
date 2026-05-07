@@ -10,18 +10,38 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#2d6a4f',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
+        wdc: {
+          gold:              '#ECBB56',
+          'gold-soft':       '#F5DC9A',
+          cream:             '#F5E9C8',
+          'cream-soft':      '#FAF3DF',
+          purple:            '#B295D9',
+          'cta-purple':      '#7C5CA8',
+          'cta-purple-press':'#6B4D9C',
+          charcoal:          '#3D3D3D',
+          'body-text':       '#4B494A',
+          paper:             '#FBF7F6',
         },
+        status: {
+          available:   '#4A7A5A',
+          limited:     '#C98A2B',
+          full:        '#C24040',
+          unavailable: '#9A9A9A',
+        },
+      },
+      fontFamily: {
+        display: ['var(--font-display)', 'cursive'],
+        label:   ['var(--font-label)',   'sans-serif'],
+        body:    ['var(--font-body)',     'sans-serif'],
+      },
+      boxShadow: {
+        'card':      '0 2px 10px rgba(0,0,0,0.06)',
+        'cta':       '0 3px 10px rgba(124,92,168,0.35)',
+        'cta-hover': '0 6px 16px rgba(124,92,168,0.45)',
+        'hero':      '0 4px 20px rgba(0,0,0,0.12)',
+      },
+      borderRadius: {
+        'pill': '50px',
       },
     },
   },

@@ -1,58 +1,49 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
-import Link from 'next/link'
-import ThemeToggle from './components/ThemeToggle'
+import AppShell from './components/AppShell'
 
-const inter = Inter({ subsets: ['latin'] })
+const merienda = localFont({
+  src: [
+    { path: './fonts/Merienda-Regular.ttf', weight: '400' },
+    { path: './fonts/Merienda-Bold.ttf',    weight: '700' },
+  ],
+  variable: '--font-merienda',
+})
+const oswald = localFont({
+  src: [
+    { path: './fonts/Oswald-Regular.ttf', weight: '400' },
+    { path: './fonts/Oswald-Medium.ttf',  weight: '500' },
+  ],
+  variable: '--font-oswald',
+})
+const openSans = localFont({
+  src: [
+    { path: './fonts/OpenSans-Regular.ttf',  weight: '400' },
+    { path: './fonts/OpenSans-SemiBold.ttf', weight: '600' },
+  ],
+  variable: '--font-open-sans',
+})
 
 export const metadata: Metadata = {
   title: 'Whitstable Dog Care',
   description: 'Dog profiles and management for Whitstable Dog Care',
   manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'WDC',
-  },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'WDC' },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning
+      className={`${merienda.variable} ${oswald.variable} ${openSans.variable}`}>
       <head>
-        <link rel="apple-touch-icon" href="/wdc-logo.png" />
+        <link rel="apple-touch-icon" href="/logo.webp" />
       </head>
-      <body className={inter.className}>
-        {/* Runs before React hydrates to prevent dark mode flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem('theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches;if(s==='dark'||(s===null&&p)){document.documentElement.classList.add('dark');}})();`,
-          }}
-        />
-        <header className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-              <img src="/wdc-logo.png" alt="Whitstable Dog Care" width={56} height={56} className="rounded-full" />
-              <span className="font-bold text-lg tracking-tight text-[#2d2d4e] hidden lg:block">Whitstable Dog Care</span>
-            </Link>
-            <nav className="flex items-center gap-3 text-sm font-medium text-[#2d6a4f] flex-wrap justify-end">
-              <Link href="/" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Dogs</Link>
-              <Link href="/bookings" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Bookings & Invoices</Link>
-              <Link href="/calendar" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Calendar</Link>
-              <Link href="/dashboard" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Dashboard</Link>
-              <Link href="/settings" className="hover:text-[#245a41] transition-colors whitespace-nowrap">Settings</Link>
-              <ThemeToggle />
-            </nav>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 py-6">
-          {children}
-        </main>
+      <body>
+        <script dangerouslySetInnerHTML={{
+          __html: `(function(){var s=localStorage.getItem('theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches;if(s==='dark'||(s===null&&p)){document.documentElement.classList.add('dark');}})();`,
+        }} />
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   )

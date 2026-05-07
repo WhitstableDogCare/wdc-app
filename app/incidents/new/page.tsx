@@ -2,8 +2,17 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { PageHead, Btn } from '../../components/ui'
 
 interface Dog { id: number; name: string }
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block', fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>
+      {children}
+    </label>
+  )
+}
 
 function NewIncidentInner() {
   const router = useRouter()
@@ -45,145 +54,80 @@ function NewIncidentInner() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
-          ← Back
-        </button>
-        <h1 className="text-2xl font-bold text-gray-800">New Incident Report</h1>
-      </div>
+    <div style={{ maxWidth: 640 }}>
+      <PageHead title="New Incident Report">
+        <Btn onClick={() => router.back()} variant="secondary">Cancel</Btn>
+      </PageHead>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
+      <div style={{ background: 'var(--tint-amber)', border: '1px solid var(--tint-amber-text)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: 'var(--tint-amber-text)', marginBottom: 20, lineHeight: 1.5 }}>
         Complete this form when an unusual or unexpected event occurs — such as injury, escape, aggressive behaviour, or an emergency situation.
       </div>
 
-      <div className="space-y-5">
-
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Dog */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Dog</label>
-          <select
-            value={form.dog_id}
-            onChange={e => set('dog_id', e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-          >
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Dog</FieldLabel>
+          <select value={form.dog_id} onChange={e => set('dog_id', e.target.value)} style={{ width: '100%' }}>
             <option value="">— Select dog —</option>
-            {dogs.map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
+            {dogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
 
         {/* Completed by */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Completed by</label>
-          <input
-            type="text"
-            value={form.completed_by}
-            onChange={e => set('completed_by', e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-          />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Completed by</FieldLabel>
+          <input type="text" value={form.completed_by} onChange={e => set('completed_by', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
         </div>
 
         {/* Date & Time */}
-        <div className="grid grid-cols-2 gap-4">
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Date of incident</label>
-            <input
-              type="date"
-              value={form.incident_date}
-              onChange={e => set('incident_date', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-            />
+            <FieldLabel>Date of incident</FieldLabel>
+            <input type="date" value={form.incident_date} onChange={e => set('incident_date', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Time of incident</label>
-            <input
-              type="time"
-              value={form.incident_time}
-              onChange={e => set('incident_time', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-            />
+            <FieldLabel>Time of incident</FieldLabel>
+            <input type="time" value={form.incident_time} onChange={e => set('incident_time', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
 
         {/* Location */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Location of incident</label>
-          <input
-            type="text"
-            value={form.location}
-            onChange={e => set('location', e.target.value)}
-            placeholder="e.g. Garden patio, front hallway..."
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-          />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Location of incident</FieldLabel>
+          <input type="text" value={form.location} onChange={e => set('location', e.target.value)} placeholder="e.g. Garden patio, front hallway…" style={{ width: '100%', boxSizing: 'border-box' }} />
         </div>
 
-        {/* Staff witnesses */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Staff witnesses</label>
-          <input
-            type="text"
-            value={form.witnesses}
-            onChange={e => set('witnesses', e.target.value)}
-            placeholder="Names of any staff present"
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]"
-          />
+        {/* Witnesses */}
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Staff witnesses</FieldLabel>
+          <input type="text" value={form.witnesses} onChange={e => set('witnesses', e.target.value)} placeholder="Names of any staff present" style={{ width: '100%', boxSizing: 'border-box' }} />
         </div>
 
         {/* Description */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Brief description of the incident</label>
-          <p className="text-xs text-gray-500 mb-1.5">Consider who, what, where, when and how.</p>
-          <textarea
-            value={form.description}
-            onChange={e => set('description', e.target.value)}
-            rows={5}
-            placeholder="Describe what happened..."
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none"
-          />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Brief description of the incident</FieldLabel>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>Consider who, what, where, when and how.</p>
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={5} placeholder="Describe what happened…" style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
         </div>
 
         {/* Root causes */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Root causes of the incident</label>
-          <p className="text-xs text-gray-500 mb-1.5">Think beyond the obvious — why did this happen? Were procedures adequate? Was training sufficient?</p>
-          <textarea
-            value={form.root_causes}
-            onChange={e => set('root_causes', e.target.value)}
-            rows={4}
-            placeholder="Identify the underlying causes..."
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none"
-          />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Root causes of the incident</FieldLabel>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>Think beyond the obvious — why did this happen? Were procedures adequate? Was training sufficient?</p>
+          <textarea value={form.root_causes} onChange={e => set('root_causes', e.target.value)} rows={4} placeholder="Identify the underlying causes…" style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
         </div>
 
         {/* Prevention */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Matters undertaken to prevent recurrence</label>
-          <textarea
-            value={form.prevention_measures}
-            onChange={e => set('prevention_measures', e.target.value)}
-            rows={4}
-            placeholder="What steps have been taken to prevent this happening again?"
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none"
-          />
+        <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
+          <FieldLabel>Matters undertaken to prevent recurrence</FieldLabel>
+          <textarea value={form.prevention_measures} onChange={e => set('prevention_measures', e.target.value)} rows={4} placeholder="What steps have been taken to prevent this happening again?" style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-[#2d6a4f] text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#245a41] transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save Incident Report'}
-          </button>
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-2.5 rounded-xl font-semibold text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
+        <div style={{ display: 'flex', gap: 10, paddingBottom: 32 }}>
+          <Btn onClick={handleSave} disabled={saving} variant="primary">
+            {saving ? 'Saving…' : 'Save Incident Report'}
+          </Btn>
+          <Btn onClick={() => router.back()} variant="secondary">Cancel</Btn>
         </div>
       </div>
     </div>
