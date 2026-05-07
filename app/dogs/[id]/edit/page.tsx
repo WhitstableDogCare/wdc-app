@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import Link from 'next/link'
 import DogForm from '@/components/DogForm'
+import { PageHead, Btn } from '@/app/components/ui'
 
 export default function EditDogPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -62,15 +62,20 @@ export default function EditDogPage({ params }: { params: Promise<{ id: string }
       .catch(() => setLoading(false))
   }, [id])
 
-  if (loading) return <div className="flex justify-center py-16 text-gray-500">Loading...</div>
-  if (!dog) return <div className="text-center py-16 text-gray-500">Dog not found</div>
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>
+      Loading…
+    </div>
+  )
+  if (!dog) return (
+    <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Dog not found</div>
+  )
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Link href={`/dogs/${id}`} className="text-sm text-[#2d6a4f] hover:underline flex items-center gap-1 mb-4">
-        ← Back to profile
-      </Link>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Edit {String(dog.name || '')}</h1>
+    <div style={{ maxWidth: 680 }}>
+      <PageHead title={`Edit ${String(dog.name || '')}`}>
+        <Btn href={`/dogs/${id}`} variant="secondary">Back to profile</Btn>
+      </PageHead>
       <DogForm mode="edit" dogId={parseInt(id)} initialData={dog as Parameters<typeof DogForm>[0]['initialData']} />
     </div>
   )

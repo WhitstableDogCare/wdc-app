@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { PageHead, Btn, Pill } from '../components/ui'
 
 interface Config {
   businessName?: string
@@ -40,6 +41,80 @@ function parseSubmissionDate(raw_data: string): string {
     if (date) return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   } catch {}
   return ''
+}
+
+// --- Layout helpers ---
+
+function SectionCard({ title, children, badge }: { title: string; children: React.ReactNode; badge?: React.ReactNode }) {
+  return (
+    <div style={{
+      background: 'var(--surface-2)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--density-radius-card)',
+      boxShadow: 'var(--sh-sm)',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 18px', borderBottom: '1px solid var(--border)',
+      }}>
+        <span style={{ fontFamily: 'var(--font-label)', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+          {title}
+        </span>
+        {badge}
+      </div>
+      <div style={{ padding: '18px' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function SettingRow({ label, hint, action, children }: { label: string; hint?: string; action?: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{label}</p>
+        {hint && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.5 }}>{hint}</p>}
+        {children}
+      </div>
+      {action && <div style={{ flexShrink: 0 }}>{action}</div>}
+    </div>
+  )
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block', fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+      {children}
+    </label>
+  )
+}
+
+function SmallBtn({ onClick, disabled, children, variant = 'primary' }: {
+  onClick?: () => void
+  disabled?: boolean
+  children: React.ReactNode
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
+}) {
+  const bg = variant === 'primary' ? 'var(--cta-purple)' : variant === 'danger' ? 'var(--tint-red)' : variant === 'ghost' ? 'var(--surface-3)' : 'var(--surface-3)'
+  const color = variant === 'primary' ? '#fff' : variant === 'danger' ? 'var(--tint-red-text)' : 'var(--text)'
+  const border = variant === 'secondary' ? '1px solid var(--border)' : 'none'
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: bg, color, border, borderRadius: 'var(--density-radius-pill)',
+        padding: '7px 14px', fontSize: 12, fontWeight: 600,
+        fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
+        whiteSpace: 'nowrap', transition: 'opacity 150ms',
+      }}
+    >
+      {children}
+    </button>
+  )
 }
 
 export default function SettingsPage() {
@@ -137,7 +212,7 @@ export default function SettingsPage() {
     const data = await res.json()
     setSyncingPublicCal(false)
     if (data.error) setSyncPublicCalResult(`Error: ${data.error}`)
-    else setSyncPublicCalResult(`✓ Synced ${data.startDate} to ${data.endDate}`)
+    else setSyncPublicCalResult(`Synced ${data.startDate} to ${data.endDate}`)
   }
 
   const handleSavePublicCal = async () => {
@@ -242,7 +317,7 @@ export default function SettingsPage() {
     if (data.error) {
       setSaveBackupResult(`Error: ${data.error}`)
     } else {
-      setSaveBackupResult(`✓ Saved ${data.files.join(' & ')} to WDC Backups`)
+      setSaveBackupResult(`Saved ${data.files.join(' & ')} to WDC Backups`)
     }
     setSavingBackup(false)
   }
@@ -292,393 +367,452 @@ export default function SettingsPage() {
     })
     const data = await res.json()
     if (data.error) setCalImportError(data.error)
-    else setCalImportResult(`✓ Imported ${data.imported} bookings. ${data.skipped} duplicates skipped.`)
+    else setCalImportResult(`Imported ${data.imported} bookings. ${data.skipped} duplicates skipped.`)
     setCalImportPreview(null)
     setCalImportImporting(false)
   }
 
-  if (loading) return <div className="text-center py-16 text-gray-500">Loading...</div>
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>
+      Loading settings…
+    </div>
+  )
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+    <div style={{ maxWidth: 600 }}>
+      <PageHead title="Settings" />
 
-      {/* Export & Backup */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-        <h2 className="font-semibold text-gray-800 border-b border-gray-100 pb-3">Export & Backup</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* Back Up Now */}
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">💾 Back Up Now</p>
-            <p className="text-xs text-gray-500 mt-0.5">Saves all app data to <span className="font-medium text-gray-600">WDC Backups</span> on Google Drive</p>
+        {/* Export & Backup */}
+        <SectionCard title="Export & Backup">
+          <SettingRow
+            label="Back Up Now"
+            hint="Saves all app data to WDC Backups on Google Drive"
+            action={
+              <SmallBtn onClick={handleSaveBackup} disabled={savingBackup}>
+                {savingBackup ? 'Saving…' : 'Back Up'}
+              </SmallBtn>
+            }
+          >
             {saveBackupResult && (
-              <p className={`text-xs mt-1 font-medium ${saveBackupResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
+              <p style={{ fontSize: 11, marginTop: 4, color: saveBackupResult.startsWith('Error') ? 'var(--tint-red-text)' : 'var(--tint-green-text)' }}>
                 {saveBackupResult}
               </p>
             )}
+          </SettingRow>
+
+          <SettingRow
+            label="Export Dog Profiles PDF"
+            hint="Dog profiles, trials and incidents — opens print view in new tab"
+            action={
+              <a href="/export" target="_blank" style={{
+                display: 'inline-block', background: 'var(--surface-3)', color: 'var(--text)',
+                border: '1px solid var(--border)', borderRadius: 'var(--density-radius-pill)',
+                padding: '7px 14px', fontSize: 12, fontWeight: 600,
+                fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                textDecoration: 'none', whiteSpace: 'nowrap',
+              }}>
+                Export PDF
+              </a>
+            }
+          />
+
+          <SettingRow
+            label="Export Invoices PDF"
+            hint="All invoices with service lines, totals and outstanding summary"
+            action={
+              <a href="/export/invoices" target="_blank" style={{
+                display: 'inline-block', background: 'var(--surface-3)', color: 'var(--text)',
+                border: '1px solid var(--border)', borderRadius: 'var(--density-radius-pill)',
+                padding: '7px 14px', fontSize: 12, fontWeight: 600,
+                fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                textDecoration: 'none', whiteSpace: 'nowrap',
+              }}>
+                Export PDF
+              </a>
+            }
+          />
+
+          <div style={{ borderBottom: 'none' }}>
+            <SettingRow
+              label="Download Database"
+              hint="Downloads a copy of the .db file to your Downloads folder"
+              action={
+                <a href="/api/backup/db" style={{
+                  display: 'inline-block', background: 'var(--surface-3)', color: 'var(--text)',
+                  border: '1px solid var(--border)', borderRadius: 'var(--density-radius-pill)',
+                  padding: '7px 14px', fontSize: 12, fontWeight: 600,
+                  fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                  textDecoration: 'none', whiteSpace: 'nowrap',
+                }}>
+                  Download
+                </a>
+              }
+            />
           </div>
-          <button onClick={handleSaveBackup} disabled={savingBackup}
-            className="flex-shrink-0 text-sm bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-60 font-medium">
-            {savingBackup ? 'Saving...' : 'Back Up Now'}
-          </button>
-        </div>
+        </SectionCard>
 
-        <div className="border-t border-gray-100" />
-
-        {/* Export Dog Profiles PDF */}
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">📄 Export Dog Profiles PDF</p>
-            <p className="text-xs text-gray-500 mt-0.5">Dog profiles, trials &amp; incidents — opens print view in new tab</p>
-          </div>
-          <a href="/export" target="_blank"
-            className="flex-shrink-0 text-sm bg-[#2d6a4f] text-white px-4 py-2 rounded-lg hover:bg-[#245a41] transition-colors font-medium">
-            Export PDF
-          </a>
-        </div>
-
-        <div className="border-t border-gray-100" />
-
-        {/* Export Invoices PDF */}
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">🧾 Export Invoices PDF</p>
-            <p className="text-xs text-gray-500 mt-0.5">All invoices with service lines, totals &amp; outstanding summary</p>
-          </div>
-          <a href="/export/invoices" target="_blank"
-            className="flex-shrink-0 text-sm bg-[#2d6a4f] text-white px-4 py-2 rounded-lg hover:bg-[#245a41] transition-colors font-medium">
-            Export PDF
-          </a>
-        </div>
-
-        <div className="border-t border-gray-100" />
-
-        {/* Download .db */}
-        <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">⬇️ Download .db</p>
-            <p className="text-xs text-gray-500 mt-0.5">Downloads a copy of the database file to your Downloads folder</p>
-          </div>
-          <a href="/api/backup/db"
-            className="flex-shrink-0 text-sm bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium">
-            Download
-          </a>
-        </div>
-      </div>
-
-      {/* Tally Sync */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-        <h2 className="font-semibold text-gray-800 border-b border-gray-100 pb-3">Tally Form Sync</h2>
-
-        {/* API Key */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tally API Key</label>
-            {hasStoredKey && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">✓ Saved</span>}
-          </div>
-          {!hasStoredKey ? (
-            <div className="flex gap-2">
-              <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
-                placeholder="Paste your Tally API key..."
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-              <button onClick={handleSaveKey}
-                className="bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors">
-                Save
-              </button>
+        {/* Tally Sync */}
+        <SectionCard title="Tally Form Sync">
+          {/* API Key */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <FieldLabel>Tally API Key</FieldLabel>
+              {hasStoredKey && <Pill color="green">Saved</Pill>}
             </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              API key stored locally.{' '}
-              <button onClick={() => setHasStoredKey(false)} className="text-[#2d6a4f] underline">Update</button>
+            {!hasStoredKey ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="Paste your Tally API key…"
+                  style={{ flex: 1 }}
+                />
+                <SmallBtn onClick={handleSaveKey} disabled={!apiKey.trim()}>Save</SmallBtn>
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                API key stored.{' '}
+                <button onClick={() => setHasStoredKey(false)} style={{ background: 'none', border: 'none', color: 'var(--cta-purple)', cursor: 'pointer', fontSize: 12, padding: 0 }}>
+                  Update
+                </button>
+              </p>
+            )}
+            {savedKey && <p style={{ fontSize: 12, color: 'var(--tint-green-text)', marginTop: 4 }}>API key saved!</p>}
+          </div>
+
+          {/* Sync button */}
+          <SettingRow
+            label="Check for New Dogs"
+            hint="Shows Tally submissions not yet in the database"
+            action={
+              <SmallBtn onClick={handleSync} disabled={syncing}>
+                {syncing ? 'Checking…' : 'Sync Now'}
+              </SmallBtn>
+            }
+          />
+
+          {syncError && (
+            <div style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'var(--tint-red-text)', marginTop: 12 }}>
+              {syncError}
+            </div>
+          )}
+          {syncDone && !syncError && (
+            <p style={{ fontSize: 12, color: 'var(--tint-green-text)', marginTop: 8, fontWeight: 600 }}>
+              {newSubmissions.length === 0 ? 'No new dogs found.' : `${newSubmissions.length} new dog(s) ready to import.`}
             </p>
           )}
-          {savedKey && <p className="text-green-600 text-sm mt-1">API key saved!</p>}
-        </div>
 
-        {/* Sync button */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-700">Check for New Dogs</p>
-            <p className="text-xs text-gray-500 mt-0.5">Shows Tally submissions not yet in the database</p>
-          </div>
-          <button onClick={handleSync} disabled={syncing}
-            className="bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#245a41] transition-colors disabled:opacity-60">
-            {syncing ? 'Checking...' : 'Sync Now'}
-          </button>
-        </div>
-
-        {syncError && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{syncError}</div>}
-        {syncDone && !syncError && (
-          <p className="text-sm text-[#2d6a4f] font-medium">
-            {newSubmissions.length === 0 ? 'No new dogs found.' : `${newSubmissions.length} new dog(s) ready to import.`}
-          </p>
-        )}
-
-        {/* New submissions */}
-        {newSubmissions.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-700">New Dogs ({newSubmissions.length})</p>
-              {pendingCount > 1 && (
-                <button onClick={handleImportAll} disabled={importingAll}
-                  className="bg-[#2d6a4f] text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#245a41] transition-colors disabled:opacity-60">
-                  {importingAll ? 'Importing...' : `Import All (${pendingCount})`}
-                </button>
-              )}
-            </div>
-            {newSubmissions.map(sub => {
-              const dogName = parseSubmissionName(sub.raw_data)
-              const date = parseSubmissionDate(sub.raw_data)
-              const result = importResults[sub.id]
-              return (
-                <div key={sub.id} className={`border rounded-xl p-4 ${result ? (result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50') : 'border-gray-200'}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-gray-800">{dogName}</p>
-                      {date && <p className="text-xs text-gray-500 mt-0.5">{date}</p>}
-                      {result?.success && <p className="text-xs text-green-700 font-medium mt-0.5">Imported as {result.name}</p>}
-                      {result && !result.success && <p className="text-xs text-red-600 font-medium mt-0.5">Import failed</p>}
-                    </div>
-                    <div className="flex-shrink-0">
-                      {result?.success ? (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Done</span>
-                      ) : (
-                        <button onClick={() => { setImportingId(sub.id); importOne(sub).finally(() => setImportingId(null)) }}
-                          disabled={importingId === sub.id || importingAll}
-                          className="text-sm bg-[#2d6a4f] text-white px-3 py-1.5 rounded-lg hover:bg-[#245a41] transition-colors disabled:opacity-60 font-medium">
-                          {importingId === sub.id ? '...' : 'Import'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Utilities */}
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Utilities</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={handleResync} disabled={resyncing}
-              className="text-sm bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-60">
-              {resyncing ? 'Re-syncing...' : 'Re-sync existing dogs'}
-            </button>
-            <button onClick={handleBackfillBirthdates} disabled={backfilling}
-              className="text-sm bg-green-50 text-green-700 border border-green-200 px-4 py-2 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-60">
-              {backfilling ? 'Generating...' : 'Generate birthdates from age'}
-            </button>
-            <button onClick={handleCleanup} disabled={cleaning}
-              className="text-sm bg-red-50 text-red-700 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-60">
-              {cleaning ? 'Deleting...' : 'Delete all "Unknown" dogs'}
-            </button>
-            <a href="/api/tally/debug" target="_blank"
-              className="text-sm bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-              View raw field data ↗
-            </a>
-          </div>
-          {resyncResult && <p className="text-sm mt-2 font-medium text-blue-700">{resyncResult}</p>}
-          {cleanResult && <p className={`text-sm mt-2 font-medium ${cleanResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>{cleanResult}</p>}
-          {backfillResult && <p className={`text-sm mt-2 font-medium ${backfillResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>{backfillResult}</p>}
-        </div>
-      </div>
-
-      {/* Google Calendar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-          <h2 className="font-semibold text-gray-800">Google Calendar</h2>
-          {calConnected && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">✓ Connected</span>}
-        </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Authorise the app to create and update events in your Google Calendar when bookings are made.
-        </p>
-        <a href="/api/calendar/auth"
-          className="inline-block bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors">
-          {calConnected ? 'Re-authorise Google Calendar' : 'Connect Google Calendar'}
-        </a>
-        {calConnected && <p className="text-xs text-gray-400 mt-2">Connected. You can re-authorise at any time if it stops working.</p>}
-
-        <div className="border-t border-gray-100 mt-5 pt-4">
-          <p className="text-sm font-semibold text-gray-700 mb-1">Public Availability Calendar ID</p>
-          <p className="text-xs text-gray-500 mb-3">
-            A separate Google Calendar for public availability. The app will write anonymised daily events
-            showing spaces remaining. Find the Calendar ID in Google Calendar → Settings → your calendar → Calendar ID.
-          </p>
-          <div className="flex gap-2">
-            <input type="text" value={publicCalId} onChange={e => setPublicCalId(e.target.value)}
-              placeholder="xxxxxxxxxx@group.calendar.google.com"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-            <button onClick={handleSavePublicCal} disabled={savingPublicCal}
-              className="flex-shrink-0 bg-[#2d6a4f] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-60">
-              {savingPublicCal ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-          {savedPublicCal && <p className="text-green-600 text-sm mt-1">Saved!</p>}
-        </div>
-
-        {publicCalId && (
-          <div className="border-t border-gray-100 mt-4 pt-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Sync Public Calendar</p>
-              <p className="text-xs text-gray-500 mt-0.5">Recalculates and rewrites all events for the next 180 days</p>
-              {syncPublicCalResult && (
-                <p className={`text-xs mt-1 font-medium ${syncPublicCalResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>
-                  {syncPublicCalResult}
-                </p>
-              )}
-            </div>
-            <button onClick={handleSyncPublicCal} disabled={syncingPublicCal}
-              className="flex-shrink-0 text-sm bg-gray-100 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-60">
-              {syncingPublicCal ? 'Syncing...' : 'Sync Now'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* App Password */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-800 border-b border-gray-100 pb-3">App Password</h2>
-        <p className="text-xs text-gray-500">Change the password used to log in to this app.</p>
-        <div className="relative">
-          <input
-            type={showAppPassword ? 'text' : 'password'}
-            value={newAppPassword}
-            onChange={e => setNewAppPassword(e.target.value)}
-            placeholder="New password"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] pr-16"
-          />
-          <button type="button" onClick={() => setShowAppPassword(p => !p)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
-            {showAppPassword ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleSaveAppPassword} disabled={savingAppPassword || !newAppPassword.trim()}
-            className="bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-50">
-            {savingAppPassword ? 'Saving...' : 'Update Password'}
-          </button>
-          {savedAppPassword && <span className="text-green-600 text-sm">Password updated!</span>}
-        </div>
-      </div>
-
-      {/* Business Details */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-        <div>
-          <h2 className="font-semibold text-gray-800 border-b border-gray-100 pb-3">Business Details</h2>
-          <p className="text-xs text-gray-500 mt-2">These appear on your printed invoices.</p>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Business Name</label>
-          <input type="text" value={form.businessName} onChange={e => setForm(f => ({ ...f, businessName: e.target.value }))}
-            placeholder="Whitstable Dog Care"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Address</label>
-          <textarea value={form.businessAddress} onChange={e => setForm(f => ({ ...f, businessAddress: e.target.value }))}
-            rows={3} placeholder={"123 Harbour Street\nWhitstable\nKent CT5 1AA"}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Email</label>
-          <input type="email" value={form.businessEmail} onChange={e => setForm(f => ({ ...f, businessEmail: e.target.value }))}
-            placeholder="jack@whitstabledogcare.co.uk"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Phone</label>
-          <input type="tel" value={form.businessPhone} onChange={e => setForm(f => ({ ...f, businessPhone: e.target.value }))}
-            placeholder="07700 000000"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]" />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Payment / Bank Details</label>
-          <textarea value={form.paymentInfo} onChange={e => setForm(f => ({ ...f, paymentInfo: e.target.value }))}
-            rows={4} placeholder={"Bank: Lloyds\nAccount name: Whitstable Dog Care\nSort code: 00-00-00\nAccount number: 00000000"}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] resize-none" />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Gmail App Password</label>
-          <p className="text-xs text-gray-400 mb-2">
-            Required to send invoices by email. Go to Google Account → Security → 2-Step Verification → App passwords.
-          </p>
-          <div className="relative">
-            <input type={showPassword ? 'text' : 'password'} value={form.gmailAppPassword}
-              onChange={e => setForm(f => ({ ...f, gmailAppPassword: e.target.value }))}
-              placeholder="xxxx xxxx xxxx xxxx"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d6a4f] pr-16" />
-            <button type="button" onClick={() => setShowPassword(p => !p)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 pt-2">
-          <button onClick={handleSave} disabled={saving}
-            className="bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-60">
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
-          {saved && <span className="text-green-600 text-sm">Saved!</span>}
-        </div>
-      </div>
-
-      {/* One-time Calendar Import — hidden behind toggle */}
-      <div className="border border-dashed border-gray-200 rounded-2xl p-4">
-        <button onClick={() => setShowCalImport(v => !v)}
-          className="text-xs text-gray-400 hover:text-gray-600 w-full text-left">
-          {showCalImport ? '▲ Hide' : '▼ Show'} one-time tools
-        </button>
-
-        {showCalImport && (
-          <div className="mt-4 space-y-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Import Google Calendar Events as Bookings</p>
-              <p className="text-xs text-gray-500 mt-1">
-                One-time tool to import past bookings from Google Calendar into the bookings database.
-                Recurring events (e.g. Beau&apos;s weekly daycare) will only import past occurrences.
-                Duplicates are automatically skipped.
-              </p>
-            </div>
-
-            {!calImportResult && (
-              <button onClick={handleCalImportPreview} disabled={calImportPreviewing}
-                className="text-sm bg-gray-100 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-60">
-                {calImportPreviewing ? 'Scanning calendar...' : 'Preview import'}
-              </button>
-            )}
-
-            {calImportPreview && (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
-                <p className="text-sm text-gray-700">
-                  <span className="font-semibold text-green-700">✅ {calImportPreview.ready} ready to import</span>
-                </p>
-                <p className="text-sm text-gray-500">⏭ {calImportPreview.duplicate} already in bookings (will be skipped)</p>
-                {calImportPreview.unmatched > 0 && (
-                  <div>
-                    <p className="text-sm text-red-600">❌ {calImportPreview.unmatched} events with unrecognised dog names (will be skipped):</p>
-                    <p className="text-xs text-red-400 mt-1">{calImportPreview.unmatchedNames.join(', ')}</p>
-                  </div>
+          {/* New submissions */}
+          {newSubmissions.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontFamily: 'var(--font-label)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  New Dogs ({newSubmissions.length})
+                </span>
+                {pendingCount > 1 && (
+                  <SmallBtn onClick={handleImportAll} disabled={importingAll}>
+                    {importingAll ? 'Importing…' : `Import All (${pendingCount})`}
+                  </SmallBtn>
                 )}
-                <button onClick={handleCalImportConfirm} disabled={calImportImporting || calImportPreview.ready === 0}
-                  className="mt-2 text-sm bg-[#2d6a4f] text-white px-4 py-2 rounded-lg hover:bg-[#245a41] transition-colors disabled:opacity-60 font-medium">
-                  {calImportImporting ? 'Importing...' : `Import ${calImportPreview.ready} bookings`}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {newSubmissions.map(sub => {
+                  const dogName = parseSubmissionName(sub.raw_data)
+                  const date = parseSubmissionDate(sub.raw_data)
+                  const result = importResults[sub.id]
+                  return (
+                    <div key={sub.id} style={{
+                      border: `1px solid ${result ? (result.success ? 'var(--tint-green-text)' : 'var(--tint-red-text)') : 'var(--border)'}`,
+                      background: result ? (result.success ? 'var(--tint-green)' : 'var(--tint-red)') : 'var(--surface-3)',
+                      borderRadius: 10, padding: '10px 12px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    }}>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{dogName}</p>
+                        {date && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{date}</p>}
+                        {result?.success && <p style={{ fontSize: 11, color: 'var(--tint-green-text)', margin: '2px 0 0', fontWeight: 600 }}>Imported as {result.name}</p>}
+                        {result && !result.success && <p style={{ fontSize: 11, color: 'var(--tint-red-text)', margin: '2px 0 0', fontWeight: 600 }}>Import failed</p>}
+                      </div>
+                      <div style={{ flexShrink: 0 }}>
+                        {result?.success ? (
+                          <Pill color="green">Done</Pill>
+                        ) : (
+                          <SmallBtn
+                            onClick={() => { setImportingId(sub.id); importOne(sub).finally(() => setImportingId(null)) }}
+                            disabled={importingId === sub.id || importingAll}
+                          >
+                            {importingId === sub.id ? '…' : 'Import'}
+                          </SmallBtn>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Utilities */}
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+              Utilities
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <SmallBtn variant="ghost" onClick={handleResync} disabled={resyncing}>
+                {resyncing ? 'Re-syncing…' : 'Re-sync existing dogs'}
+              </SmallBtn>
+              <SmallBtn variant="ghost" onClick={handleBackfillBirthdates} disabled={backfilling}>
+                {backfilling ? 'Generating…' : 'Generate birthdates from age'}
+              </SmallBtn>
+              <SmallBtn variant="danger" onClick={handleCleanup} disabled={cleaning}>
+                {cleaning ? 'Deleting…' : 'Delete "Unknown" dogs'}
+              </SmallBtn>
+              <a href="/api/tally/debug" target="_blank" style={{
+                display: 'inline-block', background: 'var(--surface-3)', color: 'var(--text-muted)',
+                border: '1px solid var(--border)', borderRadius: 'var(--density-radius-pill)',
+                padding: '7px 14px', fontSize: 12, fontFamily: 'var(--font-label)', letterSpacing: '0.06em',
+                textTransform: 'uppercase', textDecoration: 'none', fontWeight: 600,
+              }}>
+                Raw field data
+              </a>
+            </div>
+            {resyncResult && <p style={{ fontSize: 12, marginTop: 8, fontWeight: 600, color: 'var(--tint-blue-text)' }}>{resyncResult}</p>}
+            {cleanResult && <p style={{ fontSize: 12, marginTop: 8, fontWeight: 600, color: cleanResult.startsWith('Error') ? 'var(--tint-red-text)' : 'var(--tint-green-text)' }}>{cleanResult}</p>}
+            {backfillResult && <p style={{ fontSize: 12, marginTop: 8, fontWeight: 600, color: backfillResult.startsWith('Error') ? 'var(--tint-red-text)' : 'var(--tint-green-text)' }}>{backfillResult}</p>}
+          </div>
+        </SectionCard>
+
+        {/* Google Calendar */}
+        <SectionCard
+          title="Google Calendar"
+          badge={calConnected ? <Pill color="green">Connected</Pill> : undefined}
+        >
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+            Authorise the app to create and update events in your Google Calendar when bookings are made.
+          </p>
+          <a href="/api/calendar/auth" style={{
+            display: 'inline-block', background: 'var(--cta-purple)', color: '#fff',
+            borderRadius: 'var(--density-radius-pill)', padding: '8px 18px',
+            fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-label)',
+            letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none',
+          }}>
+            {calConnected ? 'Re-authorise Google Calendar' : 'Connect Google Calendar'}
+          </a>
+          {calConnected && (
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+              Connected. Re-authorise at any time if it stops working.
+            </p>
+          )}
+
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Public Availability Calendar ID</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+              A separate Google Calendar for public availability. The app will write anonymised daily events showing spaces remaining.
+              Find the Calendar ID in Google Calendar → Settings → your calendar → Calendar ID.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={publicCalId}
+                onChange={e => setPublicCalId(e.target.value)}
+                placeholder="xxxxxxxxxx@group.calendar.google.com"
+                style={{ flex: 1 }}
+              />
+              <SmallBtn onClick={handleSavePublicCal} disabled={savingPublicCal}>
+                {savingPublicCal ? 'Saving…' : 'Save'}
+              </SmallBtn>
+            </div>
+            {savedPublicCal && <p style={{ fontSize: 12, color: 'var(--tint-green-text)', marginTop: 4 }}>Saved!</p>}
+          </div>
+
+          {publicCalId && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>Sync Public Calendar</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Recalculates and rewrites all events for the next 180 days</p>
+                {syncPublicCalResult && (
+                  <p style={{ fontSize: 11, marginTop: 4, fontWeight: 600, color: syncPublicCalResult.startsWith('Error') ? 'var(--tint-red-text)' : 'var(--tint-green-text)' }}>
+                    {syncPublicCalResult}
+                  </p>
+                )}
+              </div>
+              <SmallBtn variant="ghost" onClick={handleSyncPublicCal} disabled={syncingPublicCal}>
+                {syncingPublicCal ? 'Syncing…' : 'Sync Now'}
+              </SmallBtn>
+            </div>
+          )}
+        </SectionCard>
+
+        {/* App Password */}
+        <SectionCard title="App Password">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
+            Change the password used to log in to this app.
+          </p>
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <input
+              type={showAppPassword ? 'text' : 'password'}
+              value={newAppPassword}
+              onChange={e => setNewAppPassword(e.target.value)}
+              placeholder="New password"
+              style={{ width: '100%', paddingRight: 56, boxSizing: 'border-box' }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowAppPassword(p => !p)}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-label)' }}
+            >
+              {showAppPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <SmallBtn onClick={handleSaveAppPassword} disabled={savingAppPassword || !newAppPassword.trim()}>
+              {savingAppPassword ? 'Saving…' : 'Update Password'}
+            </SmallBtn>
+            {savedAppPassword && <span style={{ fontSize: 12, color: 'var(--tint-green-text)', fontWeight: 600 }}>Password updated!</span>}
+          </div>
+        </SectionCard>
+
+        {/* Business Details */}
+        <SectionCard title="Business Details">
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+            These appear on your printed invoices.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <FieldLabel>Business Name</FieldLabel>
+              <input type="text" value={form.businessName} onChange={e => setForm(f => ({ ...f, businessName: e.target.value }))}
+                placeholder="Whitstable Dog Care" style={{ width: '100%', boxSizing: 'border-box' }} />
+            </div>
+
+            <div>
+              <FieldLabel>Address</FieldLabel>
+              <textarea value={form.businessAddress} onChange={e => setForm(f => ({ ...f, businessAddress: e.target.value }))}
+                rows={3} placeholder={'123 Harbour Street\nWhitstable\nKent CT5 1AA'}
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
+            </div>
+
+            <div>
+              <FieldLabel>Email</FieldLabel>
+              <input type="email" value={form.businessEmail} onChange={e => setForm(f => ({ ...f, businessEmail: e.target.value }))}
+                placeholder="jack@whitstabledogcare.co.uk" style={{ width: '100%', boxSizing: 'border-box' }} />
+            </div>
+
+            <div>
+              <FieldLabel>Phone</FieldLabel>
+              <input type="tel" value={form.businessPhone} onChange={e => setForm(f => ({ ...f, businessPhone: e.target.value }))}
+                placeholder="07700 000000" style={{ width: '100%', boxSizing: 'border-box' }} />
+            </div>
+
+            <div>
+              <FieldLabel>Payment / Bank Details</FieldLabel>
+              <textarea value={form.paymentInfo} onChange={e => setForm(f => ({ ...f, paymentInfo: e.target.value }))}
+                rows={4} placeholder={'Bank: Lloyds\nAccount name: Whitstable Dog Care\nSort code: 00-00-00\nAccount number: 00000000'}
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
+            </div>
+
+            <div>
+              <FieldLabel>Gmail App Password</FieldLabel>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5 }}>
+                Required to send invoices by email. Go to Google Account → Security → 2-Step Verification → App passwords.
+              </p>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.gmailAppPassword}
+                  onChange={e => setForm(f => ({ ...f, gmailAppPassword: e.target.value }))}
+                  placeholder="xxxx xxxx xxxx xxxx"
+                  style={{ width: '100%', paddingRight: 56, boxSizing: 'border-box' }}
+                />
+                <button type="button" onClick={() => setShowPassword(p => !p)}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-label)' }}>
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
-            )}
-
-            {calImportError && <p className="text-sm text-red-600">{calImportError}</p>}
-            {calImportResult && <p className="text-sm text-green-700 font-medium">{calImportResult}</p>}
+            </div>
           </div>
-        )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <SmallBtn onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save Settings'}
+            </SmallBtn>
+            {saved && <span style={{ fontSize: 12, color: 'var(--tint-green-text)', fontWeight: 600 }}>Saved!</span>}
+          </div>
+        </SectionCard>
+
+        {/* One-time tools */}
+        <div style={{
+          border: '1px dashed var(--border)',
+          borderRadius: 'var(--density-radius-card)',
+          padding: 16,
+        }}>
+          <button
+            onClick={() => setShowCalImport(v => !v)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-label)', letterSpacing: '0.08em', textTransform: 'uppercase', width: '100%', textAlign: 'left' }}
+          >
+            {showCalImport ? '▲ Hide' : '▼ Show'} one-time tools
+          </button>
+
+          {showCalImport && (
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                  Import Google Calendar Events as Bookings
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  One-time tool to import past bookings from Google Calendar into the bookings database.
+                  Recurring events will only import past occurrences. Duplicates are automatically skipped.
+                </p>
+              </div>
+
+              {!calImportResult && (
+                <SmallBtn variant="ghost" onClick={handleCalImportPreview} disabled={calImportPreviewing}>
+                  {calImportPreviewing ? 'Scanning calendar…' : 'Preview import'}
+                </SmallBtn>
+              )}
+
+              {calImportPreview && (
+                <div style={{
+                  background: 'var(--surface-3)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 14px',
+                  display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--tint-green-text)', margin: 0 }}>
+                    {calImportPreview.ready} ready to import
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+                    {calImportPreview.duplicate} already in bookings (will be skipped)
+                  </p>
+                  {calImportPreview.unmatched > 0 && (
+                    <div>
+                      <p style={{ fontSize: 12, color: 'var(--tint-red-text)', margin: 0 }}>
+                        {calImportPreview.unmatched} events with unrecognised dog names (will be skipped):
+                      </p>
+                      <p style={{ fontSize: 11, color: 'var(--tint-red-text)', opacity: 0.8, margin: '2px 0 0' }}>
+                        {calImportPreview.unmatchedNames.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                  <div style={{ marginTop: 4 }}>
+                    <SmallBtn
+                      onClick={handleCalImportConfirm}
+                      disabled={calImportImporting || calImportPreview.ready === 0}
+                    >
+                      {calImportImporting ? 'Importing…' : `Import ${calImportPreview.ready} bookings`}
+                    </SmallBtn>
+                  </div>
+                </div>
+              )}
+
+              {calImportError && <p style={{ fontSize: 12, color: 'var(--tint-red-text)' }}>{calImportError}</p>}
+              {calImportResult && <p style={{ fontSize: 12, color: 'var(--tint-green-text)', fontWeight: 600 }}>{calImportResult}</p>}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )

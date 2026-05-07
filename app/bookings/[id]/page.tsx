@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Btn, Pill } from '../../components/ui'
 
 interface Booking {
   id: number
@@ -40,6 +41,15 @@ function nightsBetween(start: string, end: string) {
   return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000)
 }
 
+function FieldBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={{ fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 3 }}>{label}</p>
+      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{children}</div>
+    </div>
+  )
+}
+
 export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -55,7 +65,6 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     fetch(`/api/bookings/${id}`).then(r => r.json()).then(data => {
       setBooking(data)
       setLoading(false)
-      // If no event ID stored, quietly check if a matching event exists in Google Calendar
       if (!data.google_event_id) {
         fetch(`/api/bookings/${id}/sync-calendar`)
           .then(r => r.json())
@@ -76,7 +85,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     const data = await res.json()
     if (res.ok) {
       setBooking(b => b ? { ...b, google_event_id: data.google_event_id } : b)
-      setSyncResult('✓ Synced to Google Calendar')
+      setSyncResult('Synced to Google Calendar')
     } else {
       setSyncResult(data.error ?? 'Sync failed')
     }
@@ -94,24 +103,21 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: email }),
     })
-    setResendResult(res.ok ? '✓ Invoice resent' : 'Failed to resend invoice')
+    setResendResult(res.ok ? 'Invoice resent' : 'Failed to resend invoice')
     setResending(false)
   }
 
   const handleCancel = async () => {
     if (!confirm('Cancel this booking? This will also remove it from Google Calendar.')) return
-
     let voidInvoice = false
     if (booking?.invoice && booking.invoice.status !== 'Void') {
       voidInvoice = confirm(
         `This booking has invoice #${booking.invoice.invoice_number} (£${booking.invoice.total.toFixed(2)}) which is currently ${booking.invoice.status}.\n\nDo you also want to mark the invoice as Void?`
       )
     }
-
     setCancelling(true)
     const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
     const data = await res.json()
-
     if (voidInvoice && booking?.invoice) {
       await fetch(`/api/invoices/${booking.invoice.id}`, {
         method: 'PATCH',
@@ -119,178 +125,200 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         body: JSON.stringify({ status: 'Void' }),
       })
     }
-
-    if (data.calendarWarning) {
-      alert(data.calendarWarning)
-    }
-
+    if (data.calendarWarning) alert(data.calendarWarning)
     router.push('/bookings')
   }
 
-  if (loading) return <div className="text-center py-16 text-gray-400">Loading...</div>
-  if (!booking) return <div className="text-center py-16 text-gray-400">Booking not found.</div>
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
+  if (!booking) return <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Booking not found.</div>
 
   const isBoarding = booking.booking_type === 'Boarding'
   const isCancelled = booking.status === 'Cancelled'
   const nights = isBoarding && booking.end_date ? nightsBetween(booking.start_date, booking.end_date) : null
 
   return (
-    <div className="max-w-xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/bookings" className="text-gray-400 hover:text-gray-600 text-sm">← Bookings</Link>
-        <Link href={`/bookings/${booking.id}/edit`}
-          className="text-sm bg-[#2d6a4f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#245a41] transition-colors">
-          Edit
+    <div style={{ maxWidth: 520 }}>
+      {/* Nav */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <Link href="/bookings" style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none' }}>
+          ← Bookings
         </Link>
+        <Btn href={`/bookings/${booking.id}/edit`} variant="primary">Edit</Btn>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', boxShadow: 'var(--sh-sm)', overflow: 'hidden' }}>
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            {booking.dog?.photo_path ? (
-              <img src={booking.dog.photo_path} alt={booking.dog_name} className="w-14 h-14 rounded-full object-cover" />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl">🐾</div>
-            )}
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-gray-900">{booking.dog_name}</h1>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isBoarding ? 'bg-purple-100 text-purple-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                  {booking.booking_type}
-                </span>
-                {isCancelled && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">Cancelled</span>}
-              </div>
-              {booking.dog && (
-                <Link href={`/dogs/${booking.dog.id}`} className="text-xs text-[#2d6a4f] hover:underline mt-0.5 inline-block">
-                  View dog profile →
-                </Link>
-              )}
+        <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          {booking.dog?.photo_path ? (
+            <img src={booking.dog.photo_path} alt={booking.dog_name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--tint-neutral)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2 .336-3.5 2.098-3.5 4 0 .801.07 1.6.14 2.4C3 11.5 3 13 3 13.5c0 2.5 2 4.5 4.5 4.5S12 16 12 13.5"/>
+                <circle cx="17" cy="15" r="2.5"/>
+              </svg>
             </div>
+          )}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 400, color: 'var(--text)', margin: 0 }}>
+                {booking.dog_name}
+              </h1>
+              <Pill color={isBoarding ? 'purple' : 'gold'}>{booking.booking_type}</Pill>
+              {isCancelled && <Pill color="red">Cancelled</Pill>}
+            </div>
+            {booking.dog && (
+              <Link href={`/dogs/${booking.dog.id}`} style={{ fontSize: 12, color: 'var(--cta-purple)', textDecoration: 'none' }}>
+                View dog profile
+              </Link>
+            )}
           </div>
         </div>
 
         {/* Details */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                {isBoarding ? 'Drop-off' : 'Date'}
-              </p>
-              <p className="text-sm text-gray-800">{formatDate(booking.start_date)}</p>
-              {booking.drop_off_time && <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-2 mb-0.5">Drop-off</p>}
-              {booking.drop_off_time && <p className="text-xs text-gray-500">{formatTime(booking.drop_off_time)}</p>}
-            </div>
+        <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <FieldBlock label={isBoarding ? 'Drop-off' : 'Date'}>
+              {formatDate(booking.start_date)}
+              {booking.drop_off_time && (
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                  Drop-off: {formatTime(booking.drop_off_time)}
+                </div>
+              )}
+            </FieldBlock>
             {isBoarding && booking.end_date ? (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Pick-up</p>
-                <p className="text-sm text-gray-800">{formatDate(booking.end_date)}</p>
-                {booking.pick_up_time && <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-2 mb-0.5">Pick-up</p>}
-                {booking.pick_up_time && <p className="text-xs text-gray-500">{formatTime(booking.pick_up_time)}</p>}
-                {nights !== null && <p className="text-xs text-gray-500 mt-0.5">{nights} night{nights !== 1 ? 's' : ''}</p>}
-              </div>
+              <FieldBlock label="Pick-up">
+                {formatDate(booking.end_date)}
+                {booking.pick_up_time && (
+                  <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                    Pick-up: {formatTime(booking.pick_up_time)}
+                  </div>
+                )}
+                {nights !== null && (
+                  <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                    {nights} night{nights !== 1 ? 's' : ''}
+                  </div>
+                )}
+              </FieldBlock>
             ) : !isBoarding && booking.pick_up_time ? (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Pick-up</p>
-                <p className="text-xs text-gray-500">{formatTime(booking.pick_up_time)}</p>
-              </div>
+              <FieldBlock label="Pick-up">
+                {formatTime(booking.pick_up_time)}
+              </FieldBlock>
             ) : null}
           </div>
 
-          {booking.service_type && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Service</p>
-              <p className="text-sm text-gray-800">{booking.service_type}</p>
-            </div>
-          )}
-
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Rate</p>
-            <p className="text-sm text-gray-800">{booking.rate_type}</p>
-          </div>
-
+          {booking.service_type && <FieldBlock label="Service">{booking.service_type}</FieldBlock>}
+          <FieldBlock label="Rate">{booking.rate_type}</FieldBlock>
           {booking.owner_name && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Owner</p>
-              <p className="text-sm text-gray-800">{booking.owner_name}</p>
-              {booking.owner_email && <p className="text-xs text-gray-500">{booking.owner_email}</p>}
-            </div>
+            <FieldBlock label="Owner">
+              {booking.owner_name}
+              {booking.owner_email && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{booking.owner_email}</div>
+              )}
+            </FieldBlock>
           )}
-
           {booking.notes && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Notes</p>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{booking.notes}</p>
-            </div>
+            <FieldBlock label="Notes">
+              <span style={{ whiteSpace: 'pre-wrap' }}>{booking.notes}</span>
+            </FieldBlock>
           )}
 
-          <div className="flex items-center gap-4 pt-2 border-t border-gray-100 text-xs text-gray-400 flex-wrap">
+          {/* Status strip */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
             {booking.google_event_id
-              ? <span className="text-green-600">✓ Linked to Google Calendar</span>
-              : <span className="text-gray-400">Not linked to Google Calendar</span>
+              ? <span style={{ fontSize: 11, color: 'var(--tint-green-text)', fontWeight: 600 }}>Calendar linked</span>
+              : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>No calendar event</span>
             }
-            {booking.confirmation_sent && <span>✓ Confirmation sent</span>}
+            {booking.confirmation_sent && (
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Confirmation sent</span>
+            )}
             {booking.invoice && (
-              <span className={`px-2 py-0.5 rounded-full font-medium ${
-                booking.invoice.status === 'Paid' ? 'bg-green-100 text-green-700'
-                : booking.invoice.status === 'Void' ? 'bg-gray-100 text-gray-500'
-                : 'bg-amber-100 text-amber-700'
-              }`}>
-                {booking.invoice.status === 'Paid' ? '✓ Paid'
-                  : booking.invoice.status === 'Void' ? '✗ Void'
+              <Pill color={booking.invoice.status === 'Paid' ? 'green' : booking.invoice.status === 'Void' ? 'neutral' : 'amber'}>
+                {booking.invoice.status === 'Paid'
+                  ? 'Paid'
+                  : booking.invoice.status === 'Void'
+                  ? 'Void'
                   : `Unpaid — £${booking.invoice.total.toFixed(2)}`}
-              </span>
+              </Pill>
             )}
           </div>
+
           {booking.invoice_flagged && (
-            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-              ⚠️ <strong>This booking was edited after the invoice was sent.</strong> Check the invoice is still accurate and resend if needed.
+            <div style={{ padding: '10px 12px', background: 'var(--tint-amber)', border: '1px solid var(--tint-amber-text)', borderRadius: 8, fontSize: 12, color: 'var(--tint-amber-text)' }}>
+              This booking was edited after the invoice was sent. Check the invoice is still accurate and resend if needed.
             </div>
           )}
         </div>
 
         {/* Actions */}
         {!isCancelled && (
-          <div className="flex flex-col gap-3 mt-6 pt-5 border-t border-gray-100">
+          <div style={{ padding: '0 18px 18px', display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
             {!booking.google_event_id && (
               <div>
-                <button onClick={handleSyncCalendar} disabled={syncing}
-                  className="w-full py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-60">
-                  {syncing ? 'Syncing...' : '📅 Add to Google Calendar'}
+                <button
+                  onClick={handleSyncCalendar}
+                  disabled={syncing}
+                  style={{
+                    width: '100%', padding: '9px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                    cursor: syncing ? 'not-allowed' : 'pointer', opacity: syncing ? 0.6 : 1,
+                    background: 'var(--tint-blue)', color: 'var(--tint-blue-text)',
+                    border: '1px solid var(--tint-blue-text)',
+                  }}
+                >
+                  {syncing ? 'Syncing…' : 'Add to Google Calendar'}
                 </button>
-                <p className="text-xs text-gray-400 mt-1 text-center">Only use this if the event is genuinely missing — it will create a new one</p>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
+                  Only use this if the event is genuinely missing
+                </p>
                 {syncResult && (
-                  <p className={`text-xs mt-1.5 text-center font-medium ${syncResult.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
+                  <p style={{ fontSize: 12, textAlign: 'center', marginTop: 6, fontWeight: 600, color: 'var(--tint-green-text)' }}>
                     {syncResult}
                   </p>
                 )}
               </div>
             )}
+
             {booking.invoice ? (
-              <div className="flex flex-col gap-2">
-                <Link href={`/invoices/${booking.invoice.id}`}
-                  className="w-full py-2 rounded-lg text-sm font-medium bg-[#2d6a4f] text-white text-center hover:bg-[#245a41] transition-colors">
-                  🧾 View Invoice #{booking.invoice.invoice_number}
-                </Link>
-                <button onClick={handleResendInvoice} disabled={resending}
-                  className="w-full py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-60">
-                  {resending ? 'Sending...' : '📤 Resend Invoice'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Btn href={`/invoices/${booking.invoice.id}`} variant="primary">
+                  View Invoice #{booking.invoice.invoice_number}
+                </Btn>
+                <button
+                  onClick={handleResendInvoice}
+                  disabled={resending}
+                  style={{
+                    padding: '9px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                    cursor: resending ? 'not-allowed' : 'pointer', opacity: resending ? 0.6 : 1,
+                    background: 'var(--tint-blue)', color: 'var(--tint-blue-text)',
+                    border: '1px solid var(--tint-blue-text)',
+                  }}
+                >
+                  {resending ? 'Sending…' : 'Resend Invoice'}
                 </button>
                 {resendResult && (
-                  <p className={`text-xs text-center font-medium ${resendResult.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
-                    {resendResult}
-                  </p>
+                  <p style={{ fontSize: 12, textAlign: 'center', fontWeight: 600, color: 'var(--tint-green-text)' }}>{resendResult}</p>
                 )}
               </div>
             ) : (
-              <Link href={`/invoices/new?bookingId=${booking.id}`}
-                className="w-full py-2 rounded-lg text-sm font-medium bg-[#2d6a4f] text-white text-center hover:bg-[#245a41] transition-colors">
-                🧾 Create Invoice
-              </Link>
+              <Btn href={`/invoices/new?bookingId=${booking.id}`} variant="primary">
+                Create Invoice
+              </Btn>
             )}
-            <button onClick={handleCancel} disabled={cancelling}
-              className="flex-1 py-2 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60">
-              {cancelling ? 'Cancelling...' : 'Cancel Booking'}
+
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              style={{
+                padding: '9px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                cursor: cancelling ? 'not-allowed' : 'pointer', opacity: cancelling ? 0.6 : 1,
+                background: 'var(--tint-red)', color: 'var(--tint-red-text)',
+                border: '1px solid var(--tint-red-text)',
+              }}
+            >
+              {cancelling ? 'Cancelling…' : 'Cancel Booking'}
             </button>
           </div>
         )}

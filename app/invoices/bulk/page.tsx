@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { PageHead, Pill } from '../../components/ui'
 
 interface PendingBooking {
   id: number
@@ -40,7 +41,6 @@ export default function BulkInvoicePage() {
       .then(r => r.json())
       .then(data => {
         setBookings(data)
-        // Pre-select all bookings that have an email
         setSelected(new Set(data.filter((b: PendingBooking) => b.has_email).map((b: PendingBooking) => b.id)))
         setLoading(false)
       })
@@ -74,7 +74,6 @@ export default function BulkInvoicePage() {
     })
     const data = await res.json()
     setResults(data.results ?? [])
-    // Remove sent bookings from the list
     const sentIds = new Set((data.results ?? []).filter((r: SendResult) => r.status === 'sent').map((r: SendResult) => r.bookingId))
     setBookings(prev => prev.filter(b => !sentIds.has(b.id)))
     setSelected(new Set())
@@ -84,28 +83,19 @@ export default function BulkInvoicePage() {
   const eligibleCount = bookings.filter(b => b.has_email).length
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/invoices" className="text-gray-400 hover:text-gray-600 text-sm">← Invoices</Link>
-      </div>
+    <div style={{ maxWidth: 640 }}>
+      <PageHead title="Send Invoices" sub="Upcoming confirmed bookings without an invoice" />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#2d2d4e]">Send Invoices</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Upcoming confirmed bookings without an invoice. Select the ones you want to invoice and send all at once.
-        </p>
-      </div>
-
-      {/* Results banner */}
+      {/* Results */}
       {results && (
-        <div className="mb-6 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <p className="font-semibold text-gray-800 mb-2">Done — here's what happened:</p>
-          <div className="space-y-1">
+        <div style={{ marginBottom: 20, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: '14px 18px' }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Done — here&apos;s what happened:</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {results.map(r => (
-              <div key={r.bookingId} className="flex items-center gap-2 text-sm">
+              <div key={r.bookingId} style={{ fontSize: 13 }}>
                 {r.status === 'sent'
-                  ? <span className="text-green-600">✓ {r.dogName} — invoice sent</span>
-                  : <span className="text-amber-600">⚠ {r.dogName} — skipped ({r.reason})</span>
+                  ? <span style={{ color: 'var(--tint-green-text)' }}>{r.dogName} — invoice sent</span>
+                  : <span style={{ color: 'var(--tint-amber-text)' }}>{r.dogName} — skipped ({r.reason})</span>
                 }
               </div>
             ))}
@@ -114,64 +104,74 @@ export default function BulkInvoicePage() {
       )}
 
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Loading...</div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
       ) : bookings.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-2xl mb-2">✓</p>
-          <p className="font-semibold text-gray-700">All upcoming bookings have been invoiced</p>
-          <p className="text-sm text-gray-400 mt-1">Nothing left to do here.</p>
+        <div style={{ textAlign: 'center', padding: '64px 0', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)' }}>
+          <p style={{ fontSize: 24, margin: '0 0 8px' }}>✓</p>
+          <p style={{ fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>All upcoming bookings have been invoiced</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Nothing left to do here.</p>
         </div>
       ) : (
         <>
-          {/* Select all + send button */}
-          <div className="flex items-center justify-between mb-3">
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+          {/* Select all + send */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text)', userSelect: 'none' }}>
               <input
                 type="checkbox"
                 checked={eligibleCount > 0 && bookings.filter(b => b.has_email).every(b => selected.has(b.id))}
                 onChange={toggleAll}
-                className="rounded"
+                style={{ width: 16, height: 16 }}
               />
               Select all ({eligibleCount} with email)
             </label>
             <button
               onClick={handleSend}
               disabled={sending || selected.size === 0}
-              className="bg-[#2d6a4f] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#245a41] transition-colors disabled:opacity-50"
+              style={{
+                background: 'var(--cta-purple)', color: '#fff', border: 'none',
+                borderRadius: 'var(--density-radius-pill)', padding: '8px 18px',
+                fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-label)',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                cursor: sending || selected.size === 0 ? 'not-allowed' : 'pointer',
+                opacity: sending || selected.size === 0 ? 0.5 : 1,
+              }}
             >
-              {sending ? 'Sending...' : `Send ${selected.size > 0 ? selected.size : ''} Invoice${selected.size !== 1 ? 's' : ''}`}
+              {sending ? 'Sending…' : `Send ${selected.size > 0 ? selected.size : ''} Invoice${selected.size !== 1 ? 's' : ''}`}
             </button>
           </div>
 
           {/* Booking list */}
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {bookings.map(b => (
-              <div key={b.id} className={`bg-white rounded-xl border shadow-sm p-4 flex items-start gap-3 ${!b.has_email ? 'opacity-60' : ''}`}>
+              <div key={b.id} style={{
+                background: 'var(--surface-2)', border: '1px solid var(--border)',
+                borderRadius: 'var(--density-radius-card)', padding: '12px 14px',
+                display: 'flex', alignItems: 'flex-start', gap: 12,
+                opacity: b.has_email ? 1 : 0.55,
+              }}>
                 <input
                   type="checkbox"
                   checked={selected.has(b.id)}
                   onChange={() => toggleOne(b.id)}
                   disabled={!b.has_email}
-                  className="mt-1 rounded"
+                  style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0 }}
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-900">{b.dog_name}</span>
-                    {b.dog_breed && <span className="text-xs text-gray-400">{b.dog_breed}</span>}
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${b.booking_type.startsWith('Boarding') ? 'bg-purple-100 text-purple-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {b.booking_type}
-                    </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{b.dog_name}</span>
+                    {b.dog_breed && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{b.dog_breed}</span>}
+                    <Pill color={b.booking_type.startsWith('Boarding') ? 'purple' : 'gold'}>{b.booking_type}</Pill>
                   </div>
-                  <p className="text-sm text-gray-600 mt-0.5">
+                  <p style={{ fontSize: 12, color: 'var(--text)', margin: '0 0 2px' }}>
                     {formatDate(b.start_date)}{b.end_date ? ` → ${formatDate(b.end_date)}` : ''}
                   </p>
-                  {b.owner_name && <p className="text-xs text-gray-400 mt-0.5">{b.owner_name}</p>}
+                  {b.owner_name && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 1px' }}>{b.owner_name}</p>}
                   {b.owner_email
-                    ? <p className="text-xs text-gray-400">{b.owner_email}</p>
-                    : <p className="text-xs text-red-400 font-medium">⚠ No email — cannot invoice</p>
+                    ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>{b.owner_email}</p>
+                    : <p style={{ fontSize: 11, color: 'var(--tint-red-text)', fontWeight: 600, margin: 0 }}>No email — cannot invoice</p>
                   }
                 </div>
-                <Link href={`/bookings/${b.id}`} className="text-xs text-[#2d6a4f] hover:underline whitespace-nowrap">
+                <Link href={`/bookings/${b.id}`} style={{ fontSize: 12, color: 'var(--cta-purple)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   View →
                 </Link>
               </div>
