@@ -755,8 +755,6 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
     setTimeout(() => setNotesSaved(false), 2000)
   }
 
-  const handlePhotoClick = () => { fileInputRef.current?.click() }
-
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -795,21 +793,24 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
       {/* Header card */}
       <Card style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
         {/* Photo */}
-        <div
-          style={{ position: 'relative', background: 'var(--tint-neutral)', cursor: 'pointer', minHeight: 200, maxHeight: 320, overflow: 'hidden' }}
-          onClick={handlePhotoClick}
+        <label
+          htmlFor="photo-input"
+          style={{ position: 'relative', background: 'var(--tint-neutral)', cursor: 'pointer', minHeight: 200, maxHeight: 320, overflow: 'hidden', display: 'block' }}
           className="photo-area"
         >
           {dog.photo_path ? (
             <img src={dog.photo_path} alt={dog.name} style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 320 }} />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: 200 }}>
               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2 .336-3.5 2.098-3.5 4 0 .801.07 1.6.14 2.4C3 11.5 3 13 3 13.5c0 2.5 2 4.5 4.5 4.5S12 16 12 13.5c0-.5.14-1.94.14-1.94"/>
                 <path d="M14.836 5C14.836 3.67 16.165 2.62 17.836 3c1.78.397 2.996 2.098 2.996 4 0 .758-.07 1.486-.14 2.2l.144.3"/>
                 <circle cx="17" cy="15" r="2.5"/>
                 <path d="M14.5 13.5v-2"/>
               </svg>
+              <span style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 11, color: 'var(--text-muted)' }}>
+                {uploadingPhoto ? 'Uploading…' : 'Add photo'}
+              </span>
             </div>
           )}
           <div className="photo-overlay" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0)', transition: 'background 150ms' }}>
@@ -817,8 +818,8 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
               {uploadingPhoto ? 'Uploading…' : 'Change photo'}
             </span>
           </div>
-        </div>
-        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
+        </label>
+        <input id="photo-input" ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
 
         <div style={{ padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
