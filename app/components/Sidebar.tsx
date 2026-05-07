@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 // Inline SVG icons — 18x18, stroke currentColor, strokeWidth 1.75
 function IconDog() {
@@ -139,6 +139,12 @@ function ThemeButton() {
 
 export default function Sidebar({ drawerOpen, onClose }: { drawerOpen: boolean; onClose: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+  }
 
   const railStyle: React.CSSProperties = {
     background: 'var(--surface-rail)',
@@ -175,13 +181,8 @@ export default function Sidebar({ drawerOpen, onClose }: { drawerOpen: boolean; 
         {/* Brand block */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px 14px', borderBottom: '1px dashed rgba(0,0,0,0.12)' }}>
           <img src="/logo.webp" alt="WDC" width={38} height={38} style={{ borderRadius: '50%', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, lineHeight: 1.1, fontWeight: 700, color: 'var(--charcoal)' }}>
-              Whitstable<br/>Dog Care
-            </div>
-            <div style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.14em', fontSize: 9.5, color: 'rgba(0,0,0,0.5)', marginTop: 2 }}>
-              Care Manager
-            </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, lineHeight: 1.1, fontWeight: 700, color: 'var(--charcoal)' }}>
+            Whitstable<br/>Dog Care
           </div>
         </div>
 
@@ -239,6 +240,24 @@ export default function Sidebar({ drawerOpen, onClose }: { drawerOpen: boolean; 
         {/* Footer */}
         <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px dashed rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <ThemeButton />
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 10px', borderRadius: 10, width: '100%',
+              fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.08em',
+              fontSize: 13, fontWeight: 500, color: 'var(--text-muted)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              transition: 'color 150ms ease',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign out
+          </button>
         </div>
       </nav>
     </>
