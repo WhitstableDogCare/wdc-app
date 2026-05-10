@@ -238,11 +238,11 @@ export default function EditBookingPage() {
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <FieldLabel>Drop-off Time</FieldLabel>
-            <TimeSelect value={dropOffTime} onChange={setDropOffTime} />
+            <TimeSelect value={dropOffTime} onChange={setDropOffTime} minHour={7} maxHour={21} />
           </div>
           <div>
             <FieldLabel>Pick-up Time</FieldLabel>
-            <TimeSelect value={pickUpTime} onChange={setPickUpTime} />
+            <TimeSelect value={pickUpTime} onChange={setPickUpTime} minHour={7} maxHour={21} />
           </div>
         </div>
 
