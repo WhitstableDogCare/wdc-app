@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { PageHead, Btn, Pill } from '../../../components/ui'
+import TimeSelect from '../../../components/TimeSelect'
 
 interface Dog {
   id: number
@@ -237,11 +238,11 @@ export default function EditBookingPage() {
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <FieldLabel>Drop-off Time</FieldLabel>
-            <input type="time" step={900} value={dropOffTime} onChange={e => setDropOffTime(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
+            <TimeSelect value={dropOffTime} onChange={setDropOffTime} />
           </div>
           <div>
             <FieldLabel>Pick-up Time</FieldLabel>
-            <input type="time" step={900} value={pickUpTime} onChange={e => setPickUpTime(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
+            <TimeSelect value={pickUpTime} onChange={setPickUpTime} />
           </div>
         </div>
 

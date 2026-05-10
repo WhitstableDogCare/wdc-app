@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Btn, Pill } from '../../components/ui'
+import TimeSelect from '../../components/TimeSelect'
 
 interface Incident {
   id: number
@@ -148,7 +149,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
             </div>
             <div>
               <FieldLabel>Time</FieldLabel>
-              <input type="time" value={form.incident_time} onChange={e => set('incident_time', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
+              <TimeSelect value={form.incident_time} onChange={v => set('incident_time', v)} />
             </div>
           </div>
           <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>

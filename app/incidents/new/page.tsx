@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PageHead, Btn } from '../../components/ui'
+import TimeSelect from '../../components/TimeSelect'
 
 interface Dog { id: number; name: string }
 
@@ -87,7 +88,7 @@ function NewIncidentInner() {
           </div>
           <div>
             <FieldLabel>Time of incident</FieldLabel>
-            <input type="time" value={form.incident_time} onChange={e => set('incident_time', e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
+            <TimeSelect value={form.incident_time} onChange={v => set('incident_time', v)} />
           </div>
         </div>
 
