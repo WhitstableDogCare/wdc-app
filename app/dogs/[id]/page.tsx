@@ -507,8 +507,6 @@ function DogIncidentsTab({ dogId }: { dogId: number }) {
   )
 }
 
-const DOG_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-
 interface DogBooking {
   id: number
   booking_type: string
@@ -517,36 +515,19 @@ interface DogBooking {
   drop_off_time: string | null
   pick_up_time: string | null
   status: string
-  is_recurring: boolean
-  day_of_week: number | null
-  _virtual_date?: string
 }
 
 function nightsBetween(start: string, end: string) {
   return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)))
 }
 
-function getNextOccurrencesDog(dayOfWeek: number, count = 4): string[] {
-  const dates: string[] = []
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  const daysUntil = (dayOfWeek - d.getDay() + 7) % 7
-  d.setDate(d.getDate() + daysUntil)
-  for (let i = 0; i < count; i++) {
-    dates.push(d.toISOString().split('T')[0])
-    d.setDate(d.getDate() + 7)
-  }
-  return dates
-}
-
 function bookingPillColor(type: string): 'purple' | 'gold' {
   return type.startsWith('Boarding') ? 'purple' : 'gold'
 }
 
-function formatDbBookingDate(b: DogBooking, virtualDate?: string) {
+function formatDbBookingDate(b: DogBooking) {
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }
-  const dateStr = virtualDate ?? b.start_date
-  const d = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', opts)
+  const d = new Date(b.start_date + 'T12:00:00').toLocaleDateString('en-GB', opts)
   if (b.booking_type === 'Boarding' && b.end_date) {
     const e = new Date(b.end_date + 'T12:00:00').toLocaleDateString('en-GB', opts)
     return `${d} → ${e}`
@@ -571,33 +552,19 @@ function DogBookingsTab({ dogId }: { dogId: number; dogName: string }) {
   const now = new Date()
   now.setHours(0, 0, 0, 0)
 
-  const pastNonRecurring = bookings
-    .filter(b => !b.is_recurring && new Date((b.end_date ?? b.start_date) + 'T23:59:00') < now)
+  const pastBookings = bookings
+    .filter(b => new Date((b.end_date ?? b.start_date) + 'T23:59:00') < now)
     .sort((a, b) => b.start_date.localeCompare(a.start_date))
 
-  const upcomingNonRecurring = bookings.filter(b =>
-    !b.is_recurring &&
-    new Date((b.end_date ?? b.start_date) + 'T23:59:00') >= now &&
-    b.status !== 'Cancelled'
-  )
+  const upcoming = bookings
+    .filter(b => new Date((b.end_date ?? b.start_date) + 'T23:59:00') >= now && b.status !== 'Cancelled')
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))
 
-  const recurringExpanded: DogBooking[] = []
-  for (const b of bookings) {
-    if (!b.is_recurring || b.status === 'Cancelled' || b.day_of_week == null) continue
-    for (const date of getNextOccurrencesDog(b.day_of_week, 4)) {
-      recurringExpanded.push({ ...b, _virtual_date: date })
-    }
-  }
-
-  const upcoming = [...upcomingNonRecurring, ...recurringExpanded].sort((a, b) =>
-    (a._virtual_date ?? a.start_date).localeCompare(b._virtual_date ?? b.start_date)
-  )
-
-  const boardingNights = pastNonRecurring
+  const boardingNights = pastBookings
     .filter(b => b.booking_type === 'Boarding')
     .reduce((s, b) => s + (b.end_date ? nightsBetween(b.start_date, b.end_date) : 1), 0)
-  const daycareDays  = pastNonRecurring.filter(b => b.booking_type === 'Daycare').length
-  const trialCount   = pastNonRecurring.filter(b => b.booking_type.includes('Trial')).length
+  const daycareDays  = pastBookings.filter(b => b.booking_type === 'Daycare').length
+  const trialCount   = pastBookings.filter(b => b.booking_type.includes('Trial')).length
   const showStats    = boardingNights > 0 || daycareDays > 0 || trialCount > 0
 
   return (
@@ -630,25 +597,20 @@ function DogBookingsTab({ dogId }: { dogId: number; dogName: string }) {
               <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'var(--text-dim)', marginBottom: 6 }}>Upcoming</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {upcoming.map((b, i) => (
-                  <Link key={b._virtual_date ? `${b.id}-${b._virtual_date}` : `${b.id}-${i}`} href={`/bookings/${b.id}`}
+                  <Link key={`${b.id}-${i}`} href={`/bookings/${b.id}`}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-app)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--border)' }}>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{formatDbBookingDate(b, b._virtual_date)}</p>
-                      {b.is_recurring && b.day_of_week != null && (
-                        <p style={{ fontSize: 11, color: 'var(--tint-blue-text)', marginTop: 2 }}>Recurring every {DOG_DAY_NAMES[b.day_of_week]}</p>
-                      )}
-                    </div>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{formatDbBookingDate(b)}</p>
                     <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
                   </Link>
                 ))}
               </div>
             </div>
           )}
-          {pastNonRecurring.length > 0 && (
+          {pastBookings.length > 0 && (
             <div>
               <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'var(--text-dim)', marginBottom: 6 }}>Past</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {pastNonRecurring.map((b, i) => (
+                {pastBookings.map((b, i) => (
                   <Link key={`past-${b.id}-${i}`} href={`/bookings/${b.id}`}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-app)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--border)', opacity: 0.65 }}>
                     <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', margin: 0 }}>{formatDbBookingDate(b)}</p>

@@ -101,39 +101,6 @@ export async function findCalendarEvent(title: string, startDate: string, endDat
   }
 }
 
-const BYDAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']
-
-export async function createRecurringCalendarEvent(params: {
-  title: string
-  startDate: string
-  dayOfWeek: number
-  dropOffTime?: string | null
-  pickUpTime?: string | null
-  description?: string
-}): Promise<string | null> {
-  try {
-    const calendar = google.calendar({ version: 'v3', auth: getAuth() })
-    const start = buildEventTime(params.startDate, params.dropOffTime)
-    const end = params.dropOffTime
-      ? buildEventTime(params.startDate, params.pickUpTime)
-      : { date: exclusiveEnd(params.startDate) }
-    const res = await calendar.events.insert({
-      calendarId: 'primary',
-      requestBody: {
-        summary: params.title,
-        description: params.description ?? '',
-        start,
-        end,
-        recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[params.dayOfWeek]}`],
-      },
-    })
-    return res.data.id ?? null
-  } catch (e) {
-    console.error('Google Calendar recurring create error:', e)
-    return null
-  }
-}
-
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
   const calendar = google.calendar({ version: 'v3', auth: getAuth() })
   await calendar.events.delete({ calendarId: 'primary', eventId })

@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { PageHead, Card, Pill, StatTile } from '../components/ui'
 import type { UnifiedEvent, UnifiedTask } from '@/app/api/calendar/unified/route'
 
-const CAL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-
 interface Booking {
   id: number
   booking_type: string
@@ -17,10 +15,7 @@ interface Booking {
   drop_off_time: string | null
   pick_up_time: string | null
   status: string
-  is_recurring: boolean
-  day_of_week: number | null
   dog: { id: number; name: string; photo_path: string | null } | null
-  _virtual_date?: string
 }
 
 interface UnavailablePeriod {
@@ -44,24 +39,8 @@ function nightsBetween(start: string, end: string) {
   return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)))
 }
 
-function getNextOccurrences(dayOfWeek: number, count = 8): string[] {
-  const dates: string[] = []
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  const daysUntil = (dayOfWeek - d.getDay() + 7) % 7
-  d.setDate(d.getDate() + daysUntil)
-  for (let i = 0; i < count; i++) {
-    dates.push(d.toISOString().split('T')[0])
-    d.setDate(d.getDate() + 7)
-  }
-  return dates
-}
-
-function effectiveStart(b: Booking) { return b._virtual_date ?? b.start_date }
-function effectiveEnd(b: Booking) {
-  if (b._virtual_date) return b._virtual_date
-  return b.end_date ?? b.start_date
-}
+function effectiveStart(b: Booking) { return b.start_date }
+function effectiveEnd(b: Booking) { return b.end_date ?? b.start_date }
 function isBookingToday(b: Booking) {
   const today = new Date().toISOString().split('T')[0]
   return effectiveStart(b) <= today && effectiveEnd(b) >= today
@@ -157,17 +136,7 @@ export default function CalendarPage() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const expanded: Booking[] = []
-  for (const b of bookings) {
-    if (b.status === 'Cancelled') continue
-    if (b.is_recurring && b.day_of_week != null) {
-      for (const date of getNextOccurrences(b.day_of_week, 8)) {
-        expanded.push({ ...b, _virtual_date: date })
-      }
-    } else {
-      expanded.push(b)
-    }
-  }
+  const expanded = bookings.filter(b => b.status !== 'Cancelled')
 
   const handleCompleteTask = async (id: string, tasklistId: string) => {
     setTasks(prev => prev.filter(t => t.id !== id))
@@ -196,7 +165,7 @@ export default function CalendarPage() {
 
   // Stats
   const pastBookings2 = bookings.filter(b =>
-    !b.is_recurring && b.status !== 'Cancelled' && new Date((b.end_date ?? b.start_date) + 'T23:59:00') < today
+    b.status !== 'Cancelled' && new Date((b.end_date ?? b.start_date) + 'T23:59:00') < today
   )
   const boardingNights = pastBookings2.filter(b => b.booking_type === 'Boarding').reduce((s, b) => s + (b.end_date ? nightsBetween(b.start_date, b.end_date) : 1), 0)
   const daycareDays    = pastBookings2.filter(b => b.booking_type === 'Daycare').length
@@ -234,7 +203,7 @@ export default function CalendarPage() {
     return dateA.getTime() - dateB.getTime()
   })
 
-  const pastBookings = bookings.filter(b => !b.is_recurring && b.status !== 'Cancelled' && new Date((b.end_date ?? b.start_date) + 'T23:59:00') < today).sort((a, b) => b.start_date.localeCompare(a.start_date))
+  const pastBookings = bookings.filter(b => b.status !== 'Cancelled' && new Date((b.end_date ?? b.start_date) + 'T23:59:00') < today).sort((a, b) => b.start_date.localeCompare(a.start_date))
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -258,7 +227,7 @@ export default function CalendarPage() {
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--charcoal)', margin: '0 0 10px' }}>With You Today</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {todayGuests.map((b, i) => (
-                  <div key={b._virtual_date ? `${b.id}-${b._virtual_date}` : `${b.id}-today-${i}`}
+                  <div key={`${b.id}-today-${i}`}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.5)', borderRadius: 10, padding: '10px 12px', gap: 10 }}>
                     <div>
                       {b.dog?.id
@@ -267,7 +236,6 @@ export default function CalendarPage() {
                       }
                       <p style={{ fontSize: 11, color: 'rgba(61,61,61,0.7)', marginTop: 2 }}>
                         {b.drop_off_time || b.pick_up_time ? `${fmtTime(b.drop_off_time)} → ${fmtTime(b.pick_up_time)}` : fmtDate(effectiveStart(b))}
-                        {b.is_recurring && b.day_of_week != null && ` · Every ${CAL_DAY_NAMES[b.day_of_week]}`}
                       </p>
                     </div>
                     <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
@@ -336,9 +304,6 @@ export default function CalendarPage() {
                                     }
                                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
                                       <BookingDateLine b={b} />
-                                      {b.is_recurring && b.day_of_week != null && (
-                                        <span style={{ color: 'var(--tint-blue-text)', marginLeft: 6 }}>{CAL_DAY_NAMES[b.day_of_week]}s</span>
-                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -469,9 +434,6 @@ export default function CalendarPage() {
                                   }
                                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                                     <BookingDateLine b={b} />
-                                    {b.is_recurring && b.day_of_week != null && (
-                                      <span style={{ color: 'var(--tint-blue-text)', marginLeft: 6 }}>{CAL_DAY_NAMES[b.day_of_week]}s</span>
-                                    )}
                                   </p>
                                 </div>
                               </div>

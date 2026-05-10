@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createCalendarEvent, createRecurringCalendarEvent } from '@/lib/google-calendar'
+import { createCalendarEvent } from '@/lib/google-calendar'
 import { readConfig, writeConfig } from '@/lib/config'
 import { syncPublicCalendarDays } from '@/lib/public-calendar'
 import { generateInvoiceHtml } from '@/lib/invoice-html'
@@ -23,56 +23,6 @@ function fmt12(t: string | null) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')}${ampm}`
 }
 
-// For recurring bookings — send a simple confirmation email (no invoice)
-async function sendRecurringConfirmation(booking: {
-  owner_name: string | null
-  owner_email: string | null
-  dog_name: string
-  booking_type: string
-  day_of_week: number | null
-  drop_off_time: string | null
-  pick_up_time: string | null
-  notes: string | null
-}) {
-  if (!booking.owner_email) return false
-  const config = readConfig()
-  if (!config.gmailAppPassword || !config.businessEmail) return false
-
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  const dayStr = booking.day_of_week != null ? days[booking.day_of_week] : 'a recurring day'
-  const dropStr = booking.drop_off_time ? ` from ${fmt12(booking.drop_off_time)}` : ''
-  const pickStr = booking.pick_up_time ? ` to ${fmt12(booking.pick_up_time)}` : ''
-  const businessName = config.businessName ?? 'Whitstable Dog Care'
-
-  const html = `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-      <img src="cid:logo" alt="${businessName}" style="width:80px;margin-bottom:16px"/>
-      <h2 style="color:#2d2d4e">Recurring Booking Confirmed</h2>
-      <p>Hi ${booking.owner_name ?? 'there'},</p>
-      <p>We're pleased to confirm a recurring booking for <strong>${booking.dog_name}</strong> every <strong>${dayStr}</strong>${dropStr}${pickStr}.</p>
-      ${booking.notes ? `<p style="background:#f9f9f9;padding:10px 14px;border-radius:4px;">${booking.notes}</p>` : ''}
-      <p style="background:#fff8ec;border-left:4px solid #c98a2b;padding:10px 14px;border-radius:4px;color:#4a3000">🐾 <strong>Arrival instructions</strong><br/>When you arrive, please use the side gate and do not ring the front doorbell — this unsettles the dogs in our care. Send us a WhatsApp to let us know you're outside, keep your dog on the lead, and we'll come right out. If you haven't heard from us in a few minutes, give us a call.</p>
-      <p>If you have any questions please don't hesitate to get in touch.</p>
-      <p>Many thanks,<br/><strong>${businessName}</strong><br/>${config.businessPhone ?? ''}</p>
-    </div>
-  `
-
-  const logoPath = path.join(process.cwd(), 'public', 'wdc-logo.png')
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: config.businessEmail, pass: config.gmailAppPassword },
-  })
-  await transporter.sendMail({
-    from: `"${businessName}" <${config.businessEmail}>`,
-    to: booking.owner_email,
-    subject: `Recurring Booking Confirmed — ${booking.dog_name} (${booking.booking_type})`,
-    html,
-    attachments: [{ filename: 'wdc-logo.png', path: logoPath, cid: 'logo' }],
-  })
-  return true
-}
-
-// For non-recurring bookings — create invoice and send combined confirmation + invoice email
 async function createInvoiceAndSendEmail(booking: {
   id: number
   dog_id: number | null
@@ -89,7 +39,6 @@ async function createInvoiceAndSendEmail(booking: {
   const config = readConfig()
   if (!config.gmailAppPassword || !config.businessEmail) return { invoiceId: null, sent: false }
 
-  // Resolve owner details — fall back to dog's owner record if not on booking
   let ownerName = booking.owner_name
   let ownerEmail = booking.owner_email
   let clientPhone: string | null = null
@@ -111,7 +60,6 @@ async function createInvoiceAndSendEmail(booking: {
 
   if (!ownerEmail) return { invoiceId: null, sent: false }
 
-  // Build service lines from booking times
   const isBoarding = booking.booking_type.startsWith('Boarding')
   const preset = inferPresetFromTimes(booking.drop_off_time, booking.pick_up_time, isBoarding)
   const services = preset
@@ -119,19 +67,16 @@ async function createInvoiceAndSendEmail(booking: {
     : []
   const subtotal = services.reduce((sum, s) => sum + serviceAmount(s), 0)
 
-  // Auto-apply 10% discount for boarding stays of 7+ nights
   const nights = isBoarding && booking.end_date
     ? Math.round((new Date(booking.end_date).getTime() - new Date(booking.start_date).getTime()) / 86400000)
     : 0
   const applyDiscount = nights >= 7
   const total = applyDiscount ? subtotal * 0.9 : subtotal
 
-  // Allocate invoice number
   const nextNum = config.nextInvoiceNumber ?? 1
   const invoiceNumber = String(nextNum).padStart(4, '0')
   writeConfig({ ...config, nextInvoiceNumber: nextNum + 1 })
 
-  // Save invoice
   const invoice = await prisma.invoice.create({
     data: {
       invoice_number: invoiceNumber,
@@ -152,7 +97,6 @@ async function createInvoiceAndSendEmail(booking: {
     },
   })
 
-  // Generate PDF
   const invoiceHtml = generateInvoiceHtml(invoice, config)
   const browser = await puppeteer.launch({ headless: true })
   let pdfBuffer: Buffer
@@ -169,7 +113,6 @@ async function createInvoiceAndSendEmail(booking: {
     await browser.close()
   }
 
-  // Build combined confirmation + invoice email
   const isTrial = booking.booking_type.includes('Trial')
   const dropStr = booking.drop_off_time ? ` at ${fmt12(booking.drop_off_time)}` : ''
   const pickStr = booking.pick_up_time ? ` at ${fmt12(booking.pick_up_time)}` : ''
@@ -240,51 +183,33 @@ export async function GET(req: NextRequest) {
 // POST /api/bookings
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { dogId, dogName, ownerName, ownerEmail, bookingType, startDate, endDate, dropOffTime, pickUpTime, notes, isRecurring, dayOfWeek, sendEmail } = body
+  const { dogId, dogName, ownerName, ownerEmail, bookingType, startDate, endDate, dropOffTime, pickUpTime, notes, sendEmail } = body
 
-  // Capacity check — max 5 confirmed bookings on any day in the range (skip for recurring)
-  if (!isRecurring) {
-    const checkStart = startDate
-    const checkEnd = endDate ?? startDate
-    const overlapping = await prisma.booking.findMany({
-      where: {
-        status: 'Confirmed',
-        is_recurring: false,
-        start_date: { lte: checkEnd },
-        OR: [
-          { end_date: { gte: checkStart } },
-          { end_date: null, start_date: { gte: checkStart } },
-        ],
-      },
-    })
-    if (overlapping.length >= 5) {
-      return NextResponse.json({ error: 'Capacity full — already 5 bookings on those dates.' }, { status: 409 })
-    }
+  // Capacity check — max 5 confirmed bookings on any day in the range
+  const checkEnd = endDate ?? startDate
+  const overlapping = await prisma.booking.findMany({
+    where: {
+      status: 'Confirmed',
+      start_date: { lte: checkEnd },
+      OR: [
+        { end_date: { gte: startDate } },
+        { end_date: null, start_date: { gte: startDate } },
+      ],
+    },
+  })
+  if (overlapping.length >= 5) {
+    return NextResponse.json({ error: 'Capacity full — already 5 bookings on those dates.' }, { status: 409 })
   }
 
   // Create calendar event
-  const calTitle = `${bookingType}: ${dogName}`
-  const calDesc = notes ?? ''
-  let googleEventId: string | null = null
-  if (isRecurring) {
-    googleEventId = await createRecurringCalendarEvent({
-      title: calTitle,
-      startDate,
-      dayOfWeek,
-      dropOffTime: dropOffTime ?? null,
-      pickUpTime: pickUpTime ?? null,
-      description: calDesc,
-    })
-  } else {
-    googleEventId = await createCalendarEvent({
-      title: calTitle,
-      startDate,
-      endDate: endDate ?? startDate,
-      dropOffTime: dropOffTime ?? null,
-      pickUpTime: pickUpTime ?? null,
-      description: calDesc,
-    })
-  }
+  const googleEventId = await createCalendarEvent({
+    title: `${bookingType}: ${dogName}`,
+    startDate,
+    endDate: endDate ?? startDate,
+    dropOffTime: dropOffTime ?? null,
+    pickUpTime: pickUpTime ?? null,
+    description: notes ?? '',
+  })
 
   // Save booking
   const booking = await prisma.booking.create({
@@ -297,50 +222,32 @@ export async function POST(req: NextRequest) {
       service_type: null,
       rate_type: 'Standard',
       start_date: startDate,
-      end_date: isRecurring ? null : (endDate ?? null),
+      end_date: endDate ?? null,
       drop_off_time: dropOffTime ?? null,
       pick_up_time: pickUpTime ?? null,
       notes: notes ?? null,
       status: 'Confirmed',
       google_event_id: googleEventId,
-      is_recurring: isRecurring ?? false,
-      day_of_week: isRecurring ? (dayOfWeek ?? null) : null,
     },
   })
 
   let confirmationSent = false
-
   if (sendEmail !== false) {
     try {
-      if (isRecurring) {
-        // Recurring: send simple confirmation, no invoice
-        confirmationSent = await sendRecurringConfirmation({
-          owner_name: ownerName,
-          owner_email: ownerEmail,
-          dog_name: dogName,
-          booking_type: bookingType,
-          day_of_week: dayOfWeek ?? null,
-          drop_off_time: dropOffTime ?? null,
-          pick_up_time: pickUpTime ?? null,
-          notes,
-        })
-      } else {
-        // Non-recurring: create invoice and send combined email
-        const result = await createInvoiceAndSendEmail({
-          id: booking.id,
-          dog_id: dogId ?? null,
-          dog_name: dogName,
-          owner_name: ownerName,
-          owner_email: ownerEmail,
-          booking_type: bookingType,
-          start_date: startDate,
-          end_date: endDate ?? null,
-          drop_off_time: dropOffTime ?? null,
-          pick_up_time: pickUpTime ?? null,
-          notes,
-        })
-        confirmationSent = result.sent
-      }
+      const result = await createInvoiceAndSendEmail({
+        id: booking.id,
+        dog_id: dogId ?? null,
+        dog_name: dogName,
+        owner_name: ownerName,
+        owner_email: ownerEmail,
+        booking_type: bookingType,
+        start_date: startDate,
+        end_date: endDate ?? null,
+        drop_off_time: dropOffTime ?? null,
+        pick_up_time: pickUpTime ?? null,
+        notes,
+      })
+      confirmationSent = result.sent
     } catch (e) {
       console.error('Email/invoice error:', e)
     }
@@ -350,13 +257,9 @@ export async function POST(req: NextRequest) {
     await prisma.booking.update({ where: { id: booking.id }, data: { confirmation_sent: true } })
   }
 
-  // Sync public calendar (non-recurring only, non-blocking)
-  if (!isRecurring) {
-    const syncEnd = endDate ?? startDate
-    syncPublicCalendarDays(startDate, syncEnd).catch(e =>
-      console.error('Public calendar sync error:', e)
-    )
-  }
+  syncPublicCalendarDays(startDate, endDate ?? startDate).catch(e =>
+    console.error('Public calendar sync error:', e)
+  )
 
   return NextResponse.json({ ...booking, confirmation_sent: confirmationSent })
 }

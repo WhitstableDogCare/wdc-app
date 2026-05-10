@@ -168,8 +168,6 @@ model Booking {
   status            String   @default("Confirmed")
   google_event_id   String?
   confirmation_sent Boolean  @default(false)
-  is_recurring      Boolean  @default(false)
-  day_of_week       Int?
   invoice_flagged   Boolean  @default(false) // true if booking edited after invoice was sent
   invoice           Invoice?
   created_at        DateTime @default(now())
