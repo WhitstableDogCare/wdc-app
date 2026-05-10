@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
-// ─── Hoisted mocks (available inside vi.mock factories) ───────────────────────
+// ─── Hoisted mocks ────────────────────────────────────────────────────────────
 const { mockSendMail, mockPdf, mockPage, mockBrowser } = vi.hoisted(() => {
   const mockSendMail = vi.fn().mockResolvedValue({})
   const mockPdf = vi.fn().mockResolvedValue(Buffer.from('fake-pdf'))
@@ -26,7 +26,6 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('@/lib/google-calendar', () => ({
   createCalendarEvent: vi.fn().mockResolvedValue('event-id-123'),
-  createRecurringCalendarEvent: vi.fn().mockResolvedValue('recurring-id-456'),
 }))
 
 vi.mock('@/lib/config', () => ({
@@ -57,17 +56,15 @@ vi.mock('puppeteer', () => ({
 }))
 
 import { prisma } from '@/lib/prisma'
-import { createCalendarEvent, createRecurringCalendarEvent } from '@/lib/google-calendar'
+import { createCalendarEvent } from '@/lib/google-calendar'
 import { syncPublicCalendarDays } from '@/lib/public-calendar'
 import { readConfig, writeConfig } from '@/lib/config'
 import { POST } from '../app/api/bookings/route'
 import type { NextRequest } from 'next/server'
 
-// Fake request — avoids edge-runtime issues with real NextRequest
 const makeReq = (body: Record<string, unknown>) =>
   ({ json: () => Promise.resolve(body) } as unknown as NextRequest)
 
-// A minimal booking returned by prisma.booking.create
 const makeBooking = (overrides: Record<string, unknown> = {}) => ({
   id: 1,
   dog_name: 'Buddy',
@@ -81,13 +78,10 @@ const makeBooking = (overrides: Record<string, unknown> = {}) => ({
   notes: null,
   status: 'Confirmed',
   google_event_id: 'event-id-123',
-  is_recurring: false,
-  day_of_week: null,
   confirmation_sent: false,
   ...overrides,
 })
 
-// A minimal invoice returned by prisma.invoice.create
 const makeInvoice = (overrides: Record<string, unknown> = {}) => ({
   id: 1,
   invoice_number: '0001',
@@ -109,9 +103,7 @@ const makeInvoice = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // Restore defaults after clearAllMocks
   vi.mocked(createCalendarEvent).mockResolvedValue('event-id-123')
-  vi.mocked(createRecurringCalendarEvent).mockResolvedValue('recurring-id-456')
   vi.mocked(syncPublicCalendarDays).mockResolvedValue(undefined)
   vi.mocked(readConfig).mockReturnValue({
     businessEmail: 'hello@wdc.com',
@@ -137,7 +129,7 @@ describe('POST /api/bookings — capacity check', () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce(
       Array(5).fill({ id: 1 }) as never[]
     )
-    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false, sendEmail: false }))
+    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', sendEmail: false }))
     expect(res.status).toBe(409)
     const data = await res.json()
     expect(data.error).toMatch(/capacity/i)
@@ -149,16 +141,8 @@ describe('POST /api/bookings — capacity check', () => {
     )
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
 
-    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false, sendEmail: false }))
+    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', sendEmail: false }))
     expect(res.status).toBe(200)
-  })
-
-  it('skips capacity check entirely for recurring bookings', async () => {
-    vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking({ is_recurring: true, day_of_week: 1 }) as never)
-
-    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', dayOfWeek: 1, isRecurring: true, sendEmail: false }))
-
-    expect(prisma.booking.findMany).not.toHaveBeenCalled()
   })
 
 })
@@ -167,23 +151,13 @@ describe('POST /api/bookings — capacity check', () => {
 
 describe('POST /api/bookings — calendar events', () => {
 
-  it('calls createCalendarEvent for non-recurring bookings', async () => {
+  it('calls createCalendarEvent with correct title', async () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
 
-    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false, sendEmail: false }))
+    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', sendEmail: false }))
 
     expect(createCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({ title: 'Daycare: Buddy' }))
-    expect(createRecurringCalendarEvent).not.toHaveBeenCalled()
-  })
-
-  it('calls createRecurringCalendarEvent for recurring bookings', async () => {
-    vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking({ is_recurring: true }) as never)
-
-    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', dayOfWeek: 2, isRecurring: true, sendEmail: false }))
-
-    expect(createRecurringCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({ title: 'Daycare: Buddy', dayOfWeek: 2 }))
-    expect(createCalendarEvent).not.toHaveBeenCalled()
   })
 
 })
@@ -208,8 +182,7 @@ describe('POST /api/bookings — 10% discount logic', () => {
 
     await POST(makeReq({
       dogId: 1, dogName: 'Buddy', ownerEmail: 'jane@example.com',
-      bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-28', // 7 nights
-      isRecurring: false,
+      bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-28',
     }))
 
     expect(prisma.invoice.create).toHaveBeenCalledWith(
@@ -217,7 +190,7 @@ describe('POST /api/bookings — 10% discount logic', () => {
     )
   })
 
-  it('does NOT apply discount (apply_discount: false) for 6-night boarding stay', async () => {
+  it('does NOT apply discount for 6-night boarding stay', async () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking({ booking_type: 'Boarding', start_date: '2026-04-21', end_date: '2026-04-27' }) as never)
     setupEmailMocks()
@@ -225,8 +198,7 @@ describe('POST /api/bookings — 10% discount logic', () => {
 
     await POST(makeReq({
       dogId: 1, dogName: 'Buddy', ownerEmail: 'jane@example.com',
-      bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-27', // 6 nights
-      isRecurring: false,
+      bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-27',
     }))
 
     expect(prisma.invoice.create).toHaveBeenCalledWith(
@@ -234,7 +206,7 @@ describe('POST /api/bookings — 10% discount logic', () => {
     )
   })
 
-  it('does NOT apply discount for daycare regardless of duration', async () => {
+  it('does NOT apply discount for daycare', async () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
     setupEmailMocks()
@@ -243,7 +215,6 @@ describe('POST /api/bookings — 10% discount logic', () => {
     await POST(makeReq({
       dogId: 1, dogName: 'Buddy', ownerEmail: 'jane@example.com',
       bookingType: 'Daycare', startDate: '2026-04-21',
-      isRecurring: false,
     }))
 
     expect(prisma.invoice.create).toHaveBeenCalledWith(
@@ -258,13 +229,13 @@ describe('POST /api/bookings — 10% discount logic', () => {
 describe('POST /api/bookings — email skipping', () => {
 
   it('skips email and invoice when gmail is not configured', async () => {
-    vi.mocked(readConfig).mockReturnValue({ nextInvoiceNumber: 1 }) // no email config
+    vi.mocked(readConfig).mockReturnValue({ nextInvoiceNumber: 1 })
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
 
     const res = await POST(makeReq({
       dogName: 'Buddy', ownerEmail: 'jane@example.com',
-      bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false,
+      bookingType: 'Daycare', startDate: '2026-04-21',
     }))
 
     expect(prisma.invoice.create).not.toHaveBeenCalled()
@@ -283,7 +254,7 @@ describe('POST /api/bookings — email skipping', () => {
 
     const res = await POST(makeReq({
       dogId: 1, dogName: 'Buddy',
-      bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false,
+      bookingType: 'Daycare', startDate: '2026-04-21',
     }))
 
     expect(prisma.invoice.create).not.toHaveBeenCalled()
@@ -310,7 +281,7 @@ describe('POST /api/bookings — confirmation_sent flag', () => {
 
     await POST(makeReq({
       dogId: 1, dogName: 'Buddy', ownerEmail: 'jane@example.com',
-      bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false,
+      bookingType: 'Daycare', startDate: '2026-04-21',
     }))
 
     expect(prisma.booking.update).toHaveBeenCalledWith(
@@ -324,24 +295,14 @@ describe('POST /api/bookings — confirmation_sent flag', () => {
 
 describe('POST /api/bookings — public calendar sync', () => {
 
-  it('triggers public calendar sync for non-recurring bookings', async () => {
+  it('triggers public calendar sync', async () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
 
-    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false, sendEmail: false }))
+    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', sendEmail: false }))
 
-    // Give the non-blocking .catch() a tick to fire
     await new Promise(r => setTimeout(r, 0))
     expect(syncPublicCalendarDays).toHaveBeenCalledWith('2026-04-21', '2026-04-21')
-  })
-
-  it('does NOT trigger public calendar sync for recurring bookings', async () => {
-    vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking({ is_recurring: true }) as never)
-
-    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', dayOfWeek: 1, isRecurring: true, sendEmail: false }))
-
-    await new Promise(r => setTimeout(r, 0))
-    expect(syncPublicCalendarDays).not.toHaveBeenCalled()
   })
 
 })
@@ -362,7 +323,7 @@ describe('POST /api/bookings — invoice counter', () => {
 
     await POST(makeReq({
       dogId: 1, dogName: 'Buddy', ownerEmail: 'jane@example.com',
-      bookingType: 'Daycare', startDate: '2026-04-21', isRecurring: false,
+      bookingType: 'Daycare', startDate: '2026-04-21',
     }))
 
     expect(writeConfig).toHaveBeenCalledWith(

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { PageHead, Btn, Card, Pill } from '../components/ui'
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const UNAVAILABLE_REASONS = ['Holiday', 'Illness', 'Personal', 'Other']
 
 interface Booking {
@@ -18,10 +17,7 @@ interface Booking {
   end_date: string | null
   status: string
   confirmation_sent: boolean
-  is_recurring: boolean
-  day_of_week: number | null
   dog: { id: number; name: string; photo_path: string | null; is_solo: boolean } | null
-  _virtual_date?: string
 }
 
 interface UnavailablePeriod {
@@ -55,20 +51,6 @@ function nightsBetween(start: string, end: string) {
   return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000)
 }
 
-function getNextOccurrences(dayOfWeek: number, count = 4): string[] {
-  const dates: string[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const d = new Date(today)
-  const daysUntil = (dayOfWeek - d.getDay() + 7) % 7
-  d.setDate(d.getDate() + daysUntil)
-  for (let i = 0; i < count; i++) {
-    dates.push(d.toISOString().split('T')[0])
-    d.setDate(d.getDate() + 7)
-  }
-  return dates
-}
-
 function bookingPillColor(type: string): 'purple' | 'gold' | 'neutral' {
   if (type === 'Boarding' || type === 'Boarding Trial') return 'purple'
   if (type === 'Daycare' || type === 'Daycare Trial') return 'gold'
@@ -77,7 +59,6 @@ function bookingPillColor(type: string): 'purple' | 'gold' | 'neutral' {
 
 function BookingCard({ booking }: { booking: Booking }) {
   const isBoarding = booking.booking_type === 'Boarding'
-  const displayDate = booking._virtual_date ?? booking.start_date
   const isCancelled = booking.status === 'Cancelled'
   const nights = isBoarding && booking.end_date ? nightsBetween(booking.start_date, booking.end_date) : null
 
@@ -104,16 +85,12 @@ function BookingCard({ booking }: { booking: Booking }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
           <p style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{booking.dog_name}</p>
           <Pill color={bookingPillColor(booking.booking_type)}>{booking.booking_type}</Pill>
-          {booking.is_recurring && <Pill color="blue">Recurring</Pill>}
           {booking.dog?.is_solo && <Pill color="amber">Solo</Pill>}
           {booking.rate_type === 'Peak' && <Pill color="amber">Peak</Pill>}
           {isCancelled && <Pill color="red">Cancelled</Pill>}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {booking.is_recurring && booking.day_of_week != null && !booking._virtual_date
-            ? `Every ${DAY_NAMES[booking.day_of_week]}`
-            : formatDate(displayDate)}
-          {booking._virtual_date && booking.is_recurring ? ` (recurring)` : ''}
+          {formatDate(booking.start_date)}
           {isBoarding && booking.end_date ? ` → ${formatDate(booking.end_date)}${nights ? ` · ${nights} night${nights !== 1 ? 's' : ''}` : ''}` : ''}
           {booking.service_type ? ` · ${booking.service_type}` : ''}
         </p>
@@ -149,26 +126,12 @@ function BookingsTab() {
   let displayList: Booking[] = []
 
   if (filter === 'upcoming') {
-    const nonRecurring = bookings.filter(b => {
-      if (b.is_recurring) return false
+    displayList = bookings.filter(b => {
       const end = new Date((b.end_date ?? b.start_date) + 'T23:59:00')
       return end >= now && b.status !== 'Cancelled'
-    })
-    const recurringExpanded: Booking[] = []
-    for (const b of bookings) {
-      if (!b.is_recurring || b.status === 'Cancelled' || b.day_of_week == null) continue
-      for (const date of getNextOccurrences(b.day_of_week, 4)) {
-        recurringExpanded.push({ ...b, _virtual_date: date })
-      }
-    }
-    displayList = [...nonRecurring, ...recurringExpanded].sort((a, b) => {
-      const da = a._virtual_date ?? a.start_date
-      const db = b._virtual_date ?? b.start_date
-      return da.localeCompare(db)
-    })
+    }).sort((a, b) => a.start_date.localeCompare(b.start_date))
   } else if (filter === 'past') {
     displayList = bookings.filter(b => {
-      if (b.is_recurring) return b.status === 'Cancelled'
       const end = new Date((b.end_date ?? b.start_date) + 'T23:59:00')
       return end < now || b.status === 'Cancelled'
     })
@@ -178,8 +141,7 @@ function BookingsTab() {
 
   const groups: Record<string, Booking[]> = {}
   for (const b of displayList) {
-    const dateKey = b._virtual_date ?? b.start_date
-    const key = new Date(dateKey + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+    const key = new Date(b.start_date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
     if (!groups[key]) groups[key] = []
     groups[key].push(b)
   }
@@ -215,7 +177,7 @@ function BookingsTab() {
             <div key={month}>
               <SectionLabel>{month}</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {group.map((b, i) => <BookingCard key={b._virtual_date ? `${b.id}-${b._virtual_date}` : `${b.id}-${i}`} booking={b} />)}
+                {group.map((b, i) => <BookingCard key={`${b.id}-${i}`} booking={b} />)}
               </div>
             </div>
           ))}

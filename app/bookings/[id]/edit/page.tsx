@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { PageHead, Btn, Pill } from '../../../components/ui'
+import { PageHead, Btn } from '../../../components/ui'
 import TimeSelect from '../../../components/TimeSelect'
 
 interface Dog {
@@ -25,8 +25,6 @@ interface Booking {
   pick_up_time: string | null
   notes: string | null
   status: string
-  is_recurring: boolean
-  day_of_week: number | null
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -53,8 +51,6 @@ export default function EditBookingPage() {
   const [pickUpTime, setPickUpTime] = useState('')
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState('Confirmed')
-  const [isRecurring, setIsRecurring] = useState(false)
-  const [dayOfWeek, setDayOfWeek] = useState(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -76,8 +72,6 @@ export default function EditBookingPage() {
       setPickUpTime(booking.pick_up_time ?? '')
       setNotes(booking.notes ?? '')
       setStatus(booking.status)
-      setIsRecurring(booking.is_recurring ?? false)
-      setDayOfWeek(booking.day_of_week ?? 1)
       if (booking.dog_id) setSelectedDogId(booking.dog_id)
       setLoading(false)
     })
@@ -103,9 +97,9 @@ export default function EditBookingPage() {
 
   const handleSubmit = async () => {
     if (!dogName) { setError('Dog name is required.'); return }
-    if (!isRecurring && !startDate) { setError('Start date is required.'); return }
-    if (!isRecurring && bookingType === 'Boarding' && endDate <= startDate) { setError('Pick-up date must be after the drop-off date.'); return }
-    if (!isRecurring && bookingType === 'Daycare' && dropOffTime && pickUpTime && pickUpTime <= dropOffTime) { setError('Pick-up time must be after the drop-off time.'); return }
+    if (!startDate) { setError('Start date is required.'); return }
+    if (bookingType === 'Boarding' && endDate <= startDate) { setError('Pick-up date must be after the drop-off date.'); return }
+    if (bookingType === 'Daycare' && dropOffTime && pickUpTime && pickUpTime <= dropOffTime) { setError('Pick-up time must be after the drop-off time.'); return }
     setSaving(true)
     setError(null)
     const res = await fetch(`/api/bookings/${id}`, {
@@ -114,10 +108,8 @@ export default function EditBookingPage() {
       body: JSON.stringify({
         dogName, ownerName, ownerEmail, bookingType,
         startDate,
-        endDate: isRecurring ? null : (bookingType === 'Boarding' ? endDate : startDate),
+        endDate: bookingType === 'Boarding' ? endDate : startDate,
         dropOffTime, pickUpTime, notes, status,
-        isRecurring,
-        dayOfWeek: isRecurring ? dayOfWeek : null,
       }),
     })
     const data = await res.json()
@@ -174,7 +166,7 @@ export default function EditBookingPage() {
         {/* Type */}
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
           <FieldLabel>Booking Type</FieldLabel>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             {(['Boarding', 'Daycare'] as const).map(t => (
               <button key={t} onClick={() => setBookingType(t)} style={{
                 flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
@@ -188,50 +180,30 @@ export default function EditBookingPage() {
               </button>
             ))}
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
-            <span style={{ fontSize: 13, color: 'var(--text)' }}>Recurring weekly</span>
-            {isRecurring && <Pill color="blue">Recurring</Pill>}
-          </label>
         </div>
 
         {/* Dates */}
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
-          {isRecurring ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <FieldLabel>Day of Week</FieldLabel>
-              <select value={dayOfWeek} onChange={e => setDayOfWeek(parseInt(e.target.value))} style={{ width: '100%' }}>
-                <option value={1}>Monday</option>
-                <option value={2}>Tuesday</option>
-                <option value={3}>Wednesday</option>
-                <option value={4}>Thursday</option>
-                <option value={5}>Friday</option>
-                <option value={6}>Saturday</option>
-                <option value={0}>Sunday</option>
-              </select>
+              <FieldLabel>{bookingType === 'Boarding' ? 'Drop-off Date' : 'Date'}</FieldLabel>
+              <input type="date" value={startDate} onChange={e => {
+                const newStart = e.target.value
+                setStartDate(newStart)
+                if (bookingType === 'Boarding' && newStart && endDate <= newStart) {
+                  const d = new Date(newStart + 'T12:00:00')
+                  d.setDate(d.getDate() + 1)
+                  setEndDate(d.toISOString().split('T')[0])
+                }
+              }} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {bookingType === 'Boarding' && (
               <div>
-                <FieldLabel>{bookingType === 'Boarding' ? 'Drop-off Date' : 'Date'}</FieldLabel>
-                <input type="date" value={startDate} onChange={e => {
-                  const newStart = e.target.value
-                  setStartDate(newStart)
-                  if (bookingType === 'Boarding' && newStart && endDate <= newStart) {
-                    const d = new Date(newStart + 'T12:00:00')
-                    d.setDate(d.getDate() + 1)
-                    setEndDate(d.toISOString().split('T')[0])
-                  }
-                }} style={{ width: '100%', boxSizing: 'border-box' }} />
+                <FieldLabel>Pick-up Date</FieldLabel>
+                <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
-              {bookingType === 'Boarding' && (
-                <div>
-                  <FieldLabel>Pick-up Date</FieldLabel>
-                  <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Times */}
