@@ -36,7 +36,6 @@ async function syncOneDay(calendarId: string, date: string): Promise<void> {
   const bookings = await prisma.booking.findMany({
     where: {
       status: 'Confirmed',
-      is_recurring: false,
       start_date: { lte: date },
       OR: [
         { end_date: { gte: date } },
