@@ -205,8 +205,10 @@ export default function DashboardPage() {
     else if (e.visitType === 'Daycare') monthData[key].daycare += Math.max(1, nightsBetween(e.start, e.end))
   }
   for (const inv of invoices) {
-    if (inv.status !== 'Paid' || !inv.paid_date) continue
-    const key = new Date(inv.paid_date + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+    if (inv.status !== 'Paid') continue
+    const dateStr = inv.paid_date ?? inv.invoice_date
+    if (!dateStr) continue
+    const key = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
     if (!monthData[key]) continue
     monthData[key].income += inv.total
   }
