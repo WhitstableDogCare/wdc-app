@@ -1,8 +1,9 @@
 'use client'
 
 const times: string[] = []
-for (let h = 0; h < 24; h++) {
+for (let h = 7; h <= 21; h++) {
   for (const m of [0, 15, 30, 45]) {
+    if (h === 21 && m > 0) break
     times.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
   }
 }
