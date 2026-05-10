@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3004 -H 0.0.0.0",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start -p 3004",
     "lint": "next lint",
     "db:push": "prisma db push",
@@ -18,15 +18,22 @@
     "@types/nodemailer": "^7.0.11",
     "googleapis": "^171.4.0",
     "next": "^16.2.5",
+    "node-cron": "^4.2.1",
     "node-ical": "^0.25.6",
+    "node-notifier": "^10.0.1",
     "nodemailer": "^8.0.7",
     "puppeteer": "^24.40.0",
     "react": "^18",
     "react-dom": "^18",
     "rrule": "^2.8.1"
   },
+  "overrides": {
+    "postcss": "^8.5.14"
+  },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/node-notifier": "^8.0.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
