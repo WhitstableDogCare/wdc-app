@@ -28,7 +28,6 @@ export async function GET() {
   const bookings = await prisma.booking.findMany({
     where: {
       status: 'Confirmed',
-      is_recurring: false,
       start_date: { gte: today },
       invoice: null,
     },
