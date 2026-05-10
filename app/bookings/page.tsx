@@ -134,7 +134,7 @@ function BookingsTab() {
     displayList = bookings.filter(b => {
       const end = new Date((b.end_date ?? b.start_date) + 'T23:59:00')
       return end < now || b.status === 'Cancelled'
-    })
+    }).sort((a, b) => b.start_date.localeCompare(a.start_date))
   } else {
     displayList = bookings
   }
