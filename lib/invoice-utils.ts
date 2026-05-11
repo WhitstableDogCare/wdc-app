@@ -1,5 +1,47 @@
 import { isPeakDate } from './peak-rate'
 
+export interface GroupDay {
+  date: string
+  dropOffTime: string | null
+  pickUpTime: string | null
+}
+
+// Build service lines for a group booking where each day can have different times.
+// Groups consecutive days that share the same preset and peak/standard rate.
+export function buildGroupServiceLines(days: GroupDay[], uid: () => string): ServiceLine[] {
+  if (days.length === 0) return []
+  const dayInfos = days.map(d => ({
+    date: d.date,
+    preset: inferPresetFromTimes(d.dropOffTime, d.pickUpTime, false),
+    peak: isPeakDate(d.date),
+  }))
+  const lines: ServiceLine[] = []
+  let i = 0
+  while (i < dayInfos.length) {
+    const cur = dayInfos[i]
+    let j = i + 1
+    while (
+      j < dayInfos.length &&
+      dayInfos[j].preset?.name === cur.preset?.name &&
+      dayInfos[j].peak === cur.peak
+    ) j++
+    if (cur.preset) {
+      const peak = cur.peak
+      lines.push({
+        id: uid(),
+        type: 'daycare',
+        description: `${cur.preset.name} (${peak ? 'Peak Rate' : 'Standard Rate'})`,
+        startDate: dayInfos[i].date,
+        endDate: '',
+        quantity: j - i,
+        rate: peak ? cur.preset.peak : cur.preset.standard,
+      })
+    }
+    i = j
+  }
+  return lines
+}
+
 export const SERVICE_PRESETS = [
   { name: 'Half Day Care', detail: 'max 4 hours', standard: 20, peak: 25, type: 'daycare' as const },
   { name: 'Full Day Care', detail: 'max 8 hours', standard: 30, peak: 40, type: 'daycare' as const },

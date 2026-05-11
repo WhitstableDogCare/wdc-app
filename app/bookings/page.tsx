@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { PageHead, Btn, Card, Pill } from '../components/ui'
 
@@ -17,6 +17,7 @@ interface Booking {
   end_date: string | null
   status: string
   confirmation_sent: boolean
+  booking_group_id: string | null
   dog: { id: number; name: string; photo_path: string | null; is_solo: boolean } | null
 }
 
@@ -57,7 +58,7 @@ function bookingPillColor(type: string): 'purple' | 'gold' | 'neutral' {
   return 'neutral'
 }
 
-function BookingCard({ booking }: { booking: Booking }) {
+function BookingCard({ booking, groupCount }: { booking: Booking; groupCount?: number }) {
   const isBoarding = booking.booking_type === 'Boarding'
   const isCancelled = booking.status === 'Cancelled'
   const nights = isBoarding && booking.end_date ? nightsBetween(booking.start_date, booking.end_date) : null
@@ -85,6 +86,7 @@ function BookingCard({ booking }: { booking: Booking }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
           <p style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{booking.dog_name}</p>
           <Pill color={bookingPillColor(booking.booking_type)}>{booking.booking_type}</Pill>
+          {groupCount && <Pill color="neutral">Group · {groupCount} days</Pill>}
           {booking.dog?.is_solo && <Pill color="amber">Solo</Pill>}
           {booking.rate_type === 'Peak' && <Pill color="amber">Peak</Pill>}
           {isCancelled && <Pill color="red">Cancelled</Pill>}
@@ -119,6 +121,14 @@ function BookingsTab() {
       setLoading(false)
     })
   }, [])
+
+  const groupCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const b of bookings) {
+      if (b.booking_group_id) counts[b.booking_group_id] = (counts[b.booking_group_id] ?? 0) + 1
+    }
+    return counts
+  }, [bookings])
 
   const now = new Date()
   now.setHours(0, 0, 0, 0)
@@ -177,7 +187,7 @@ function BookingsTab() {
             <div key={month}>
               <SectionLabel>{month}</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {group.map((b, i) => <BookingCard key={`${b.id}-${i}`} booking={b} />)}
+                {group.map((b, i) => <BookingCard key={`${b.id}-${i}`} booking={b} groupCount={b.booking_group_id ? groupCounts[b.booking_group_id] : undefined} />)}
               </div>
             </div>
           ))}

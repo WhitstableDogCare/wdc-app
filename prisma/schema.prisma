@@ -106,8 +106,9 @@ model Invoice {
   invoice_number String   @unique
   dog_id         Int?
   dog            Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
-  booking_id     Int?     @unique
-  booking        Booking? @relation(fields: [booking_id], references: [id], onDelete: SetNull)
+  booking_id       Int?     @unique
+  booking          Booking? @relation(fields: [booking_id], references: [id], onDelete: SetNull)
+  booking_group_id String?
   client_name    String?
   client_email   String?
   client_phone   String?
@@ -169,6 +170,7 @@ model Booking {
   google_event_id   String?
   confirmation_sent Boolean  @default(false)
   invoice_flagged   Boolean  @default(false) // true if booking edited after invoice was sent
+  booking_group_id  String?
   invoice           Invoice?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
