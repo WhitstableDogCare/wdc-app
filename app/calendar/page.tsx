@@ -227,19 +227,16 @@ export default function CalendarPage() {
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--charcoal)', margin: '0 0 10px' }}>With You Today</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {todayGuests.map((b, i) => (
-                  <div key={`${b.id}-today-${i}`}
+                  <Link key={`${b.id}-today-${i}`} href={`/bookings/${b.id}`}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.5)', borderRadius: 10, padding: '10px 12px', gap: 10 }}>
                     <div>
-                      {b.dog?.id
-                        ? <Link href={`/dogs/${b.dog.id}`} style={{ fontWeight: 600, color: 'var(--charcoal)', fontSize: 13 }}>{b.dog_name}</Link>
-                        : <span style={{ fontWeight: 600, color: 'var(--charcoal)', fontSize: 13 }}>{b.dog_name}</span>
-                      }
+                      <span style={{ fontWeight: 600, color: 'var(--charcoal)', fontSize: 13 }}>{b.dog_name}</span>
                       <p style={{ fontSize: 11, color: 'rgba(61,61,61,0.7)', marginTop: 2 }}>
                         {b.drop_off_time || b.pick_up_time ? `${fmtTime(b.drop_off_time)} → ${fmtTime(b.pick_up_time)}` : fmtDate(effectiveStart(b))}
                       </p>
                     </div>
                     <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -289,7 +286,7 @@ export default function CalendarPage() {
                             const b = item.b
                             const isNow = isBookingToday(b)
                             return (
-                              <div key={`booking-${b.id}-${i}`}
+                              <Link key={`booking-${b.id}-${i}`} href={`/bookings/${b.id}`}
                                 style={{ background: 'var(--surface-2)', border: `1px solid ${isNow ? 'var(--cta-purple)' : 'var(--border)'}`, borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                   {b.dog?.photo_path ? (
@@ -298,19 +295,14 @@ export default function CalendarPage() {
                                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--tint-neutral)', flexShrink: 0 }} />
                                   )}
                                   <div>
-                                    {b.dog?.id
-                                      ? <Link href={`/dogs/${b.dog.id}`} style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</Link>
-                                      : <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
-                                    }
+                                    <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
                                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
                                       <BookingDateLine b={b} />
                                     </p>
                                   </div>
                                 </div>
-                                <Link href={`/bookings/${b.id}`}>
-                                  <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
-                                </Link>
-                              </div>
+                                <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
+                              </Link>
                             )
                           }
 
@@ -420,7 +412,7 @@ export default function CalendarPage() {
                           const b = row.b
                           const startD = new Date(effectiveStart(b) + 'T12:00:00')
                           return (
-                            <div key={`${b.id}-${i}`}
+                            <Link key={`${b.id}-${i}`} href={`/bookings/${b.id}`}
                               style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <div style={{ textAlign: 'center', minWidth: 32 }}>
@@ -428,19 +420,14 @@ export default function CalendarPage() {
                                   <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{startD.getDate()}</p>
                                 </div>
                                 <div>
-                                  {b.dog?.id
-                                    ? <Link href={`/dogs/${b.dog.id}`} style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</Link>
-                                    : <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
-                                  }
+                                  <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
                                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                                     <BookingDateLine b={b} />
                                   </p>
                                 </div>
                               </div>
-                              <Link href={`/bookings/${b.id}`}>
-                                <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
-                              </Link>
-                            </div>
+                              <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
+                            </Link>
                           )
                         })}
                       </div>
@@ -459,19 +446,14 @@ export default function CalendarPage() {
               </summary>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
                 {pastBookings.slice(0, 30).map((b, i) => (
-                  <div key={`past-${b.id}-${i}`}
+                  <Link key={`past-${b.id}-${i}`} href={`/bookings/${b.id}`}
                     style={{ background: 'var(--surface-app)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, opacity: 0.7 }}>
                     <div>
-                      {b.dog?.id
-                        ? <Link href={`/dogs/${b.dog.id}`} style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</Link>
-                        : <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
-                      }
+                      <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{fmtDate(b.start_date)}</p>
                     </div>
-                    <Link href={`/bookings/${b.id}`}>
-                      <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
-                    </Link>
-                  </div>
+                    <Pill color={bookingPillColor(b.booking_type)}>{b.booking_type}</Pill>
+                  </Link>
                 ))}
               </div>
             </details>
