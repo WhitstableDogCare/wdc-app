@@ -37,8 +37,18 @@ export async function GET() {
     orderBy: { start_date: 'asc' },
   })
 
+  // Exclude group bookings whose group already has an invoice
+  const groupIds = [...new Set(bookings.map(b => b.booking_group_id).filter(Boolean))] as string[]
+  const invoicedGroupIds = new Set(
+    groupIds.length > 0
+      ? (await prisma.invoice.findMany({ where: { booking_group_id: { in: groupIds } }, select: { booking_group_id: true } }))
+          .map(i => i.booking_group_id)
+      : []
+  )
+  const eligible = bookings.filter(b => !b.booking_group_id || !invoicedGroupIds.has(b.booking_group_id))
+
   // Resolve owner email — use booking field first, fall back to dog owner record
-  const result = bookings.map(b => {
+  const result = eligible.map(b => {
     const ownerRecord = b.dog?.owners?.[0] ?? null
     const ownerName = b.owner_name ?? ownerRecord?.name ?? null
     const ownerEmail = b.owner_email ?? ownerRecord?.email ?? null
