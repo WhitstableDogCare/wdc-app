@@ -125,24 +125,45 @@ beforeEach(() => {
 
 describe('POST /api/bookings — capacity check', () => {
 
-  it('returns 409 when 5 bookings already overlap the date range', async () => {
+  it('returns 409 when 5 boarding bookings already overlap the date range', async () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce(
       Array(5).fill({ id: 1 }) as never[]
     )
-    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', sendEmail: false }))
+    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-25', sendEmail: false }))
     expect(res.status).toBe(409)
     const data = await res.json()
     expect(data.error).toMatch(/capacity/i)
   })
 
-  it('allows booking when only 4 bookings overlap (under capacity)', async () => {
+  it('allows booking when only 4 boarding bookings overlap (under capacity)', async () => {
     vi.mocked(prisma.booking.findMany).mockResolvedValueOnce(
       Array(4).fill({ id: 1 }) as never[]
     )
     vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
 
-    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Daycare', startDate: '2026-04-21', sendEmail: false }))
+    const res = await POST(makeReq({ dogName: 'Buddy', bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-25', sendEmail: false }))
     expect(res.status).toBe(200)
+  })
+
+  it('queries only Boarding and Boarding Trial booking types', async () => {
+    vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
+    vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
+
+    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-25', sendEmail: false }))
+
+    const where = vi.mocked(prisma.booking.findMany).mock.calls[0][0].where
+    expect(where.booking_type).toEqual({ in: ['Boarding', 'Boarding Trial'] })
+  })
+
+  it('uses strict date inequalities to exclude same-day turnarounds', async () => {
+    vi.mocked(prisma.booking.findMany).mockResolvedValueOnce([] as never[])
+    vi.mocked(prisma.booking.create).mockResolvedValueOnce(makeBooking() as never)
+
+    await POST(makeReq({ dogName: 'Buddy', bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-25', sendEmail: false }))
+
+    const where = vi.mocked(prisma.booking.findMany).mock.calls[0][0].where
+    expect(where.start_date).toEqual({ lt: '2026-04-25' })
+    expect(where.OR).toContainEqual({ end_date: { gt: '2026-04-21' } })
   })
 
 })
