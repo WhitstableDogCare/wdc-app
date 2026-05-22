@@ -185,15 +185,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { dogId, dogName, ownerName, ownerEmail, bookingType, startDate, endDate, dropOffTime, pickUpTime, notes, sendEmail } = body
 
-  // Capacity check — max 5 confirmed bookings on any day in the range
+  // Capacity check — max 5 confirmed boarding bookings on any day in the range
   const checkEnd = endDate ?? startDate
   const overlapping = await prisma.booking.findMany({
     where: {
       status: 'Confirmed',
-      start_date: { lte: checkEnd },
+      booking_type: { in: ['Boarding', 'Boarding Trial'] },
+      start_date: { lt: checkEnd },
       OR: [
-        { end_date: { gte: startDate } },
-        { end_date: null, start_date: { gte: startDate } },
+        { end_date: { gt: startDate } },
+        { end_date: null, start_date: { gt: startDate } },
       ],
     },
   })
