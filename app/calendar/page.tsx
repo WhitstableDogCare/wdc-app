@@ -94,6 +94,58 @@ function BookingDateLine({ b }: { b: Booking }) {
   return <>{fmtDate(start)}</>
 }
 
+type BookingDayStatus = 'arriving' | 'leaving' | 'staying' | 'daycare'
+
+function bookingStatusOnDay(b: Booking, date: string): BookingDayStatus {
+  const start = effectiveStart(b)
+  const end = effectiveEnd(b)
+  if (start === end) return 'daycare'
+  if (start === date) return 'arriving'
+  if (end === date) return 'leaving'
+  return 'staying'
+}
+
+const STATUS_ORDER: Record<BookingDayStatus, number> = { leaving: 0, staying: 1, arriving: 2, daycare: 3 }
+
+function bookingDaySortKey(b: Booking, date: string): string {
+  const status = bookingStatusOnDay(b, date)
+  const time = status === 'leaving' ? (b.pick_up_time ?? '99:99')
+             : status === 'arriving' ? (b.drop_off_time ?? '99:99')
+             : status === 'daycare' ? (b.drop_off_time ?? '99:99')
+             : effectiveEnd(b)
+  return `${STATUS_ORDER[status]}:${time}`
+}
+
+function BookingStatusLine({ b, date }: { b: Booking; date: string }) {
+  const status = bookingStatusOnDay(b, date)
+  if (status === 'arriving') {
+    return (
+      <span style={{ color: 'var(--tint-green-text)' }}>
+        ↓ Arriving{b.drop_off_time ? ` · ${fmtTime(b.drop_off_time)}` : ''}
+      </span>
+    )
+  }
+  if (status === 'leaving') {
+    return (
+      <span style={{ color: 'var(--tint-amber-text)' }}>
+        ↑ Leaving{b.pick_up_time ? ` · ${fmtTime(b.pick_up_time)}` : ''}
+      </span>
+    )
+  }
+  if (status === 'staying') {
+    return (
+      <span style={{ color: 'var(--text-muted)' }}>
+        Staying · leaves {fmtDate(effectiveEnd(b))}
+      </span>
+    )
+  }
+  // daycare
+  if (b.drop_off_time || b.pick_up_time) {
+    return <span>{fmtTime(b.drop_off_time)} → {fmtTime(b.pick_up_time)}</span>
+  }
+  return <span>{fmtDate(effectiveStart(b))}</span>
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p style={{ fontFamily: 'var(--font-label)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10.5, color: 'var(--text-dim)', fontWeight: 500, margin: '0 0 8px' }}>
@@ -177,7 +229,14 @@ export default function CalendarPage() {
   for (let i = 0; i < 28; i++) {
     const date = addDays(todayStr, i)
     const items: DayItem[] = []
-    for (const b of expanded) { if (effectiveStart(b) === date) items.push({ kind: 'booking', b }) }
+    for (const b of expanded) {
+      if (effectiveStart(b) <= date && effectiveEnd(b) >= date) items.push({ kind: 'booking', b })
+    }
+    items.sort((a, b) => {
+      if (a.kind === 'booking' && b.kind === 'booking')
+        return bookingDaySortKey(a.b, date).localeCompare(bookingDaySortKey(b.b, date))
+      return 0
+    })
     for (const p of unavailablePeriods) { if (p.start_date === date) items.push({ kind: 'unavailable', p }) }
     for (const e of allEvents) {
       const eventDate = e.isAllDay ? e.start : e.start.split('T')[0]
@@ -296,8 +355,8 @@ export default function CalendarPage() {
                                   )}
                                   <div>
                                     <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>{b.dog_name}</span>
-                                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
-                                      <BookingDateLine b={b} />
+                                    <p style={{ fontSize: 11, marginTop: 1 }}>
+                                      <BookingStatusLine b={b} date={date} />
                                     </p>
                                   </div>
                                 </div>

@@ -151,8 +151,8 @@ describe('POST /api/bookings — capacity check', () => {
 
     await POST(makeReq({ dogName: 'Buddy', bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-25', sendEmail: false }))
 
-    const where = vi.mocked(prisma.booking.findMany).mock.calls[0][0].where
-    expect(where.booking_type).toEqual({ in: ['Boarding', 'Boarding Trial'] })
+    const where = vi.mocked(prisma.booking.findMany).mock.calls[0]?.[0]?.where
+    expect(where?.booking_type).toEqual({ in: ['Boarding', 'Boarding Trial'] })
   })
 
   it('uses strict date inequalities to exclude same-day turnarounds', async () => {
@@ -161,9 +161,9 @@ describe('POST /api/bookings — capacity check', () => {
 
     await POST(makeReq({ dogName: 'Buddy', bookingType: 'Boarding', startDate: '2026-04-21', endDate: '2026-04-25', sendEmail: false }))
 
-    const where = vi.mocked(prisma.booking.findMany).mock.calls[0][0].where
-    expect(where.start_date).toEqual({ lt: '2026-04-25' })
-    expect(where.OR).toContainEqual({ end_date: { gt: '2026-04-21' } })
+    const where = vi.mocked(prisma.booking.findMany).mock.calls[0]?.[0]?.where
+    expect(where?.start_date).toEqual({ lt: '2026-04-25' })
+    expect(where?.OR).toContainEqual({ end_date: { gt: '2026-04-21' } })
   })
 
 })
