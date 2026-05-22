@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import './globals.css'
 import AppShell from './components/AppShell'
@@ -30,6 +30,9 @@ export const metadata: Metadata = {
   description: 'Dog profiles and management for Whitstable Dog Care',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'WDC' },
+}
+
+export const viewport: Viewport = {
   themeColor: '#ECBB56',
 }
 
