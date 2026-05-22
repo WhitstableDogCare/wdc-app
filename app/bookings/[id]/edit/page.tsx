@@ -12,6 +12,13 @@ interface Dog {
   owners: { name: string | null; email: string | null }[]
 }
 
+interface UnavailablePeriod {
+  id: number
+  start_date: string
+  end_date: string
+  reason: string
+}
+
 interface Booking {
   id: number
   dog_id: number | null
@@ -35,6 +42,28 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
+function formatDateReadable(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T12:00:00')
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  return `${days[d.getDay()]} ${ordinal(d.getDate())} ${months[d.getMonth()]}`
+}
+
+function formatTimeReadable(timeStr: string): string {
+  if (!timeStr) return ''
+  const [h, m] = timeStr.split(':').map(Number)
+  const hour = h % 12 || 12
+  const suffix = h < 12 ? 'am' : 'pm'
+  return m === 0 ? `${hour}${suffix}` : `${hour}:${m.toString().padStart(2, '0')}${suffix}`
+}
+
 export default function EditBookingPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
@@ -55,6 +84,12 @@ export default function EditBookingPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [soloWarnings, setSoloWarnings] = useState<{ dogName: string }[]>([])
+  const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>([])
+  const [unavailableWarning, setUnavailableWarning] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/unavailable-periods').then(r => r.json()).then(setUnavailablePeriods)
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -94,6 +129,13 @@ export default function EditBookingPage() {
       .then(setSoloWarnings)
       .catch(() => setSoloWarnings([]))
   }, [selectedDogId, startDate, endDate, bookingType, id])
+
+  useEffect(() => {
+    if (!startDate) { setUnavailableWarning(null); return }
+    const end = bookingType === 'Boarding' ? endDate : startDate
+    const hit = unavailablePeriods.find(p => startDate <= p.end_date && end >= p.start_date)
+    setUnavailableWarning(hit ? `These dates overlap with an unavailable period (${hit.reason}).` : null)
+  }, [startDate, endDate, bookingType, unavailablePeriods])
 
   const handleSubmit = async () => {
     if (!dogName) { setError('Dog name is required.'); return }
@@ -218,6 +260,15 @@ export default function EditBookingPage() {
           </div>
         </div>
 
+        {startDate && dropOffTime && pickUpTime && (
+          <div style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text)' }}>
+            {bookingType === 'Daycare'
+              ? `${formatDateReadable(startDate)}, ${formatTimeReadable(dropOffTime)} to ${formatTimeReadable(pickUpTime)}`
+              : `${formatDateReadable(startDate)} ${formatTimeReadable(dropOffTime)} to ${formatDateReadable(endDate || startDate)} ${formatTimeReadable(pickUpTime)}`
+            }
+          </div>
+        )}
+
         {/* Status */}
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
           <FieldLabel>Status</FieldLabel>
@@ -240,6 +291,12 @@ export default function EditBookingPage() {
           />
         </div>
 
+        {unavailableWarning && (
+          <div style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-red-text)' }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>{unavailableWarning}</p>
+            <p style={{ margin: '4px 0 0', opacity: 0.8 }}>You can still save this booking if you&apos;re sure it&apos;s correct.</p>
+          </div>
+        )}
         {soloWarnings.length > 0 && (
           <div style={{ background: 'var(--tint-amber)', border: '1px solid var(--tint-amber-text)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-amber-text)' }}>
             <p style={{ fontWeight: 600, margin: 0 }}>Solo dog conflict — {soloWarnings.map(w => w.dogName).join(', ')} {soloWarnings.length === 1 ? 'is' : 'are'} also booked on these dates.</p>

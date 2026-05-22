@@ -18,6 +18,13 @@ interface MultiDay {
   pickUpTime: string
 }
 
+interface UnavailablePeriod {
+  id: number
+  start_date: string
+  end_date: string
+  reason: string
+}
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <label style={{ display: 'block', fontFamily: 'var(--font-label)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>
@@ -44,6 +51,28 @@ function datesInRange(start: string, end: string): string[] {
 
 function formatDayLabel(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
+function formatDateReadable(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T12:00:00')
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  return `${days[d.getDay()]} ${ordinal(d.getDate())} ${months[d.getMonth()]}`
+}
+
+function formatTimeReadable(timeStr: string): string {
+  if (!timeStr) return ''
+  const [h, m] = timeStr.split(':').map(Number)
+  const hour = h % 12 || 12
+  const suffix = h < 12 ? 'am' : 'pm'
+  return m === 0 ? `${hour}${suffix}` : `${hour}:${m.toString().padStart(2, '0')}${suffix}`
 }
 
 function NewBookingInner() {
@@ -77,12 +106,15 @@ function NewBookingInner() {
   const [capacityWarning, setCapacityWarning] = useState<string | null>(null)
   const [conflictWarnings, setConflictWarnings] = useState<{ dogName: string; notes: string | null }[]>([])
   const [soloWarnings, setSoloWarnings] = useState<{ dogName: string }[]>([])
+  const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>([])
+  const [unavailableWarning, setUnavailableWarning] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/dogs').then(r => r.json()).then((data: Dog[]) => {
       setDogs(data)
       if (preselectedDogId) setSelectedDogId(parseInt(preselectedDogId))
     })
+    fetch('/api/unavailable-periods').then(r => r.json()).then(setUnavailablePeriods)
     const today = new Date().toISOString().split('T')[0]
     setStartDate(today)
     setEndDate(today)
@@ -112,6 +144,16 @@ function NewBookingInner() {
     rebuildMultiDays(multiStart, multiEnd, dropOffTime, pickUpTime, multiDays)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [multiStart, multiEnd, isMultiDay, bookingType])
+
+  // Unavailable period warning
+  useEffect(() => {
+    if (isMultiDay) { setUnavailableWarning(null); return }
+    if (!startDate) { setUnavailableWarning(null); return }
+    const end = bookingType === 'Boarding' ? endDate : startDate
+    if (!end) { setUnavailableWarning(null); return }
+    const hit = unavailablePeriods.find(p => startDate <= p.end_date && end >= p.start_date)
+    setUnavailableWarning(hit ? `These dates overlap with an unavailable period (${hit.reason}).` : null)
+  }, [startDate, endDate, bookingType, isMultiDay, unavailablePeriods])
 
   // Capacity warning (single-day mode only)
   useEffect(() => {
@@ -299,6 +341,15 @@ function NewBookingInner() {
                 <TimeSelect value={pickUpTime} onChange={setPickUpTime} minHour={7} maxHour={21} />
               </div>
             </div>
+
+            {startDate && dropOffTime && pickUpTime && (
+              <div style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text)' }}>
+                {bookingType === 'Daycare'
+                  ? `${formatDateReadable(startDate)}, ${formatTimeReadable(dropOffTime)} to ${formatTimeReadable(pickUpTime)}`
+                  : `${formatDateReadable(startDate)} ${formatTimeReadable(dropOffTime)} to ${formatDateReadable(endDate || startDate)} ${formatTimeReadable(pickUpTime)}`
+                }
+              </div>
+            )}
           </>
         )}
 
@@ -358,10 +409,22 @@ function NewBookingInner() {
                 </div>
               </>
             )}
+
+            {multiDays.length > 0 && (
+              <div style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text)', marginTop: 12 }}>
+                {`${formatDateReadable(multiDays[0].date)} to ${formatDateReadable(multiDays[multiDays.length - 1].date)} — ${multiDays.length} day${multiDays.length !== 1 ? 's' : ''}`}
+              </div>
+            )}
           </div>
         )}
 
         {/* Warnings (single-day only) */}
+        {!isMultiDay && unavailableWarning && (
+          <div style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-red-text)' }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>{unavailableWarning}</p>
+            <p style={{ margin: '4px 0 0', opacity: 0.8 }}>You can still save this booking if you&apos;re sure it&apos;s correct.</p>
+          </div>
+        )}
         {!isMultiDay && capacityWarning && (
           <div style={{ background: 'var(--tint-gold)', border: '1px solid var(--gold)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--tint-gold-text)' }}>
             {capacityWarning}
