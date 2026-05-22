@@ -13,10 +13,10 @@ export async function GET(req: NextRequest) {
   const overlapping = await prisma.booking.findMany({
     where: {
       status: 'Confirmed',
-      start_date: { lte: end! },
+      start_date: { lt: end! },
       OR: [
-        { end_date: { gte: start } },
-        { end_date: null, start_date: { gte: start } },
+        { end_date: { gt: start } },
+        { end_date: null, start_date: { gt: start } },
       ],
     },
   })
