@@ -17,7 +17,7 @@
     "@prisma/client": "^5.14.0",
     "@types/nodemailer": "^7.0.11",
     "googleapis": "^171.4.0",
-    "next": "^16.2.5",
+    "next": "^16.2.9",
     "node-cron": "^4.2.1",
     "node-ical": "^0.25.6",
     "node-notifier": "^10.0.1",
