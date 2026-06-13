@@ -10,6 +10,7 @@ interface Invoice {
   id: number
   invoice_number: string
   dog_id: number | null
+  booking_id: number | null
   client_name: string | null
   client_email: string | null
   client_phone: string | null
@@ -25,6 +26,16 @@ interface Invoice {
   status: string
   paid_date: string | null
   payment_method: string | null
+}
+
+interface Booking {
+  id: number
+  dog_name: string
+  owner_name: string | null
+  booking_type: string
+  start_date: string
+  end_date: string | null
+  invoice: { id: number; invoice_number: string } | null
 }
 
 interface Config {
@@ -50,6 +61,12 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [emailMessage, setEmailMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [emailResult, setEmailResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [showLinkModal, setShowLinkModal] = useState(false)
+  const [bookingSearch, setBookingSearch] = useState('')
+  const [bookingResults, setBookingResults] = useState<Booking[]>([])
+  const [bookingSearchLoading, setBookingSearchLoading] = useState(false)
+  const [linkingBooking, setLinkingBooking] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -108,6 +125,43 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     setDeleting(true)
     await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
     router.push('/invoices')
+  }
+
+  const handleBookingSearch = async (q: string) => {
+    setBookingSearch(q)
+    if (q.trim().length < 2) { setBookingResults([]); return }
+    setBookingSearchLoading(true)
+    const res = await fetch('/api/bookings')
+    const all: Booking[] = await res.json()
+    const lower = q.toLowerCase()
+    setBookingResults(
+      all.filter(b =>
+        b.dog_name.toLowerCase().includes(lower) ||
+        (b.owner_name ?? '').toLowerCase().includes(lower) ||
+        b.start_date.includes(q)
+      ).slice(0, 8)
+    )
+    setBookingSearchLoading(false)
+  }
+
+  const handleLinkBooking = async (bookingId: number) => {
+    setLinkingBooking(true)
+    setLinkError(null)
+    const res = await fetch(`/api/invoices/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ booking_id: bookingId }),
+    })
+    if (res.ok) {
+      setInvoice(inv => inv ? { ...inv, booking_id: bookingId } : inv)
+      setShowLinkModal(false)
+      setBookingSearch('')
+      setBookingResults([])
+    } else {
+      const data = await res.json()
+      setLinkError(data.error ?? 'Failed to link booking')
+    }
+    setLinkingBooking(false)
   }
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0', color: 'var(--text-muted)' }}>Loading…</div>
@@ -220,6 +274,18 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                       New invoice for same dog
                     </Link>
                   )}
+                  {!invoice.booking_id && (
+                    <button
+                      onClick={() => { setShowMenu(false); setShowLinkModal(true); setLinkError(null) }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: 13,
+                        color: 'var(--text)', background: 'none', border: 'none', cursor: 'pointer',
+                        borderTop: '1px solid var(--border)',
+                      }}
+                    >
+                      Link to booking
+                    </button>
+                  )}
                   <button
                     onClick={() => { setShowMenu(false); handleDelete() }}
                     disabled={deleting}
@@ -268,6 +334,56 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link to booking modal */}
+      {showLinkModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--surface-2)', borderRadius: 20, boxShadow: 'var(--sh-lg)', padding: 24, width: '100%', maxWidth: 440, margin: '0 16px' }}>
+            <h2 style={{ fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--text)', margin: '0 0 6px', fontWeight: 400 }}>Link to booking</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>Search by dog name, owner, or date (YYYY-MM-DD).</p>
+            <input
+              type="text"
+              placeholder="e.g. Vinny, Jennifer, 2026-06-15"
+              value={bookingSearch}
+              onChange={e => handleBookingSearch(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', marginBottom: 12 }}
+              autoFocus
+            />
+            {linkError && (
+              <p style={{ fontSize: 13, padding: '8px 12px', borderRadius: 8, background: 'var(--tint-red)', color: 'var(--tint-red-text)', marginBottom: 12 }}>{linkError}</p>
+            )}
+            {bookingSearchLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Searching…</p>}
+            {bookingResults.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {bookingResults.map(b => (
+                  <button
+                    key={b.id}
+                    onClick={() => handleLinkBooking(b.id)}
+                    disabled={linkingBooking}
+                    style={{
+                      textAlign: 'left', padding: '10px 14px', borderRadius: 10, fontSize: 13,
+                      background: 'var(--surface-3)', border: '1px solid var(--border)',
+                      cursor: linkingBooking ? 'not-allowed' : 'pointer', color: 'var(--text)',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{b.dog_name}</span>
+                    <span style={{ color: 'var(--text-muted)' }}> · {b.booking_type} · {b.start_date}{b.end_date ? ` → ${b.end_date}` : ''}</span>
+                    {b.owner_name && <span style={{ color: 'var(--text-muted)' }}> · {b.owner_name}</span>}
+                    {b.invoice && (
+                      <span style={{ color: 'var(--tint-amber-text)', marginLeft: 6, fontSize: 12 }}>
+                        (already linked to #{b.invoice.invoice_number})
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <Btn onClick={() => { setShowLinkModal(false); setBookingSearch(''); setBookingResults([]) }} variant="secondary">Cancel</Btn>
             </div>
           </div>
         </div>

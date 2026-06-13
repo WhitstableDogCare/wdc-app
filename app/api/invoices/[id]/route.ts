@@ -46,6 +46,24 @@ export async function PATCH(
 ) {
   const { id } = await params
   const body = await request.json()
+
+  if ('booking_id' in body) {
+    const bookingId = body.booking_id ? parseInt(body.booking_id) : null
+    if (bookingId) {
+      const conflict = await prisma.invoice.findFirst({
+        where: { booking_id: bookingId, id: { not: parseInt(id) } },
+      })
+      if (conflict) {
+        return NextResponse.json({ error: `Booking is already linked to invoice #${conflict.invoice_number}` }, { status: 409 })
+      }
+    }
+    const invoice = await prisma.invoice.update({
+      where: { id: parseInt(id) },
+      data: { booking_id: bookingId },
+    })
+    return NextResponse.json(invoice)
+  }
+
   const invoice = await prisma.invoice.update({
     where: { id: parseInt(id) },
     data: {
