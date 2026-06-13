@@ -17,6 +17,7 @@ interface UnavailablePeriod {
   start_date: string
   end_date: string
   reason: string
+  note?: string | null
 }
 
 interface Booking {
@@ -134,7 +135,7 @@ export default function EditBookingPage() {
     if (!startDate) { setUnavailableWarning(null); return }
     const end = bookingType === 'Boarding' ? endDate : startDate
     const hit = unavailablePeriods.find(p => startDate <= p.end_date && end >= p.start_date)
-    setUnavailableWarning(hit ? `These dates overlap with an unavailable period (${hit.reason}).` : null)
+    setUnavailableWarning(hit ? `These dates overlap with an unavailable period (${hit.reason === 'Other' && hit.note ? `Other: ${hit.note}` : hit.reason}).` : null)
   }, [startDate, endDate, bookingType, unavailablePeriods])
 
   const handleSubmit = async () => {

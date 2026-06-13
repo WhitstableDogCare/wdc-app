@@ -135,6 +135,9 @@ export default function SettingsPage() {
   const [publicCalId, setPublicCalId] = useState('')
   const [savingPublicCal, setSavingPublicCal] = useState(false)
   const [savedPublicCal, setSavedPublicCal] = useState(false)
+  const [meetAndGreetCalId, setMeetAndGreetCalId] = useState('')
+  const [savingMeetAndGreetCal, setSavingMeetAndGreetCal] = useState(false)
+  const [savedMeetAndGreetCal, setSavedMeetAndGreetCal] = useState(false)
   const [syncingPublicCal, setSyncingPublicCal] = useState(false)
   const [syncPublicCalResult, setSyncPublicCalResult] = useState<string | null>(null)
 
@@ -175,6 +178,7 @@ export default function SettingsPage() {
     fetch('/api/config').then(r => r.json()).then(cfg => {
       if (cfg.googleRefreshToken) setCalConnected(true)
       if (cfg.publicGoogleCalendarId) setPublicCalId(cfg.publicGoogleCalendarId)
+      if (cfg.meetAndGreetCalendarId) setMeetAndGreetCalId(cfg.meetAndGreetCalendarId)
       setForm({
         businessName: cfg.businessName ?? '',
         businessAddress: cfg.businessAddress ?? '',
@@ -225,6 +229,18 @@ export default function SettingsPage() {
     setSavingPublicCal(false)
     setSavedPublicCal(true)
     setTimeout(() => setSavedPublicCal(false), 2500)
+  }
+
+  const handleSaveMeetAndGreetCal = async () => {
+    setSavingMeetAndGreetCal(true)
+    await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meetAndGreetCalendarId: meetAndGreetCalId.trim() || undefined }),
+    })
+    setSavingMeetAndGreetCal(false)
+    setSavedMeetAndGreetCal(true)
+    setTimeout(() => setSavedMeetAndGreetCal(false), 2500)
   }
 
   const handleSave = async () => {
@@ -644,6 +660,27 @@ export default function SettingsPage() {
               </SmallBtn>
             </div>
           )}
+
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Meet &amp; Greet Calendar ID</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+              A separate Google Calendar for meet &amp; greet appointments. Events will appear in the app calendar with a &ldquo;Meet &amp; Greet&rdquo; badge.
+              Find the Calendar ID in Google Calendar → Settings → your calendar → Calendar ID.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={meetAndGreetCalId}
+                onChange={e => setMeetAndGreetCalId(e.target.value)}
+                placeholder="xxxxxxxxxx@group.calendar.google.com"
+                style={{ flex: 1 }}
+              />
+              <SmallBtn onClick={handleSaveMeetAndGreetCal} disabled={savingMeetAndGreetCal}>
+                {savingMeetAndGreetCal ? 'Saving…' : 'Save'}
+              </SmallBtn>
+            </div>
+            {savedMeetAndGreetCal && <p style={{ fontSize: 12, color: 'var(--tint-green-text)', marginTop: 4 }}>Saved!</p>}
+          </div>
         </SectionCard>
 
         {/* App Password */}

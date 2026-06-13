@@ -26,6 +26,7 @@ interface UnavailablePeriod {
   start_date: string
   end_date: string
   reason: string
+  note?: string | null
 }
 
 interface Invoice {
@@ -218,6 +219,7 @@ function UnavailableTab() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [reason, setReason] = useState('Holiday')
+  const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [warning, setWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -241,11 +243,12 @@ function UnavailableTab() {
     setError(null); setWarning(null)
     if (!startDate || !endDate) { setError('Please select both dates.'); return }
     if (endDate < startDate) { setError('End date must be on or after start date.'); return }
+    if (reason === 'Other' && !note.trim()) { setError('Please add a note when reason is Other.'); return }
     setSubmitting(true)
     const res = await fetch('/api/unavailable-periods', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startDate, endDate, reason }),
+      body: JSON.stringify({ startDate, endDate, reason, note: note.trim() || undefined }),
     })
     const data = await res.json()
     setSubmitting(false)
@@ -254,7 +257,7 @@ function UnavailableTab() {
       const names = data.overlappingBookings.map((b: { dog_name: string }) => b.dog_name).join(', ')
       setWarning(`Heads up: this period overlaps with existing bookings for ${names}.`)
     }
-    setShowForm(false); setStartDate(''); setEndDate(''); setReason('Holiday')
+    setShowForm(false); setStartDate(''); setEndDate(''); setReason('Holiday'); setNote('')
     load()
   }
 
@@ -295,10 +298,16 @@ function UnavailableTab() {
           </div>
           <div>
             <label>Reason</label>
-            <select value={reason} onChange={e => setReason(e.target.value)} style={{ width: '100%', marginTop: 4 }}>
+            <select value={reason} onChange={e => { setReason(e.target.value); setNote('') }} style={{ width: '100%', marginTop: 4 }}>
               {UNAVAILABLE_REASONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
+          {reason === 'Other' && (
+            <div>
+              <label>Note <span style={{ color: 'var(--tint-red-text)' }}>*</span></label>
+              <input type="text" value={note} onChange={e => setNote(e.target.value)} maxLength={200} placeholder="e.g. Training course" style={{ width: '100%', marginTop: 4 }} />
+            </div>
+          )}
           {error && <p style={{ fontSize: 12, color: 'var(--tint-red-text)' }}>{error}</p>}
           <Btn onClick={handleAdd} disabled={submitting}>{submitting ? 'Saving…' : 'Save'}</Btn>
         </div>
@@ -327,6 +336,7 @@ function UnavailableTab() {
                       </div>
                       <div>
                         <p style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13, margin: 0 }}>{p.reason}</p>
+                        {p.note && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{p.note}</p>}
                         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                           {p.start_date === p.end_date ? fmtDate(p.start_date) : <>{fmtDate(p.start_date)} → {fmtDate(p.end_date)}</>}
                         </p>

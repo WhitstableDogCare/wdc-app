@@ -13,7 +13,7 @@ export interface UnifiedEvent {
   start: string  // YYYY-MM-DD for all-day, ISO string for timed
   end: string
   isAllDay: boolean
-  source: 'personal' | 'family'
+  source: 'personal' | 'family' | 'meetAndGreet'
 }
 
 export interface UnifiedTask {
@@ -66,6 +66,50 @@ async function fetchIcalEvents(
     return events.sort((a, b) => a.start.localeCompare(b.start))
   } catch (e) {
     console.error(`Failed to fetch ${source} iCal:`, e)
+    return []
+  }
+}
+
+async function fetchMeetAndGreetEvents(calendarId: string, startDate: string, endDate: string): Promise<UnifiedEvent[]> {
+  try {
+    const config = readConfig()
+    if (!config.googleRefreshToken) return []
+
+    const oauth2 = new google.auth.OAuth2(
+      config.googleClientId,
+      config.googleClientSecret,
+      'http://localhost:3004/api/calendar/auth/callback'
+    )
+    oauth2.setCredentials({ refresh_token: config.googleRefreshToken })
+    const cal = google.calendar({ version: 'v3', auth: oauth2 })
+
+    const res = await cal.events.list({
+      calendarId,
+      timeMin: new Date(startDate + 'T00:00:00Z').toISOString(),
+      timeMax: new Date(endDate + 'T23:59:59Z').toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 100,
+    })
+
+    const items = res.data.items ?? []
+    return items
+      .filter(e => e.status !== 'cancelled')
+      .map(e => {
+        const allDay = !!(e.start?.date && !e.start?.dateTime)
+        const start = allDay ? (e.start!.date!) : (e.start!.dateTime!)
+        const end = allDay ? (e.end?.date ?? e.start!.date!) : (e.end?.dateTime ?? e.start!.dateTime!)
+        return {
+          id: String(e.id ?? Math.random()),
+          title: String(e.summary ?? '(No title)').trim(),
+          start,
+          end,
+          isAllDay: allDay,
+          source: 'meetAndGreet' as const,
+        }
+      })
+  } catch (err) {
+    console.error('Failed to fetch Meet & Greet calendar:', err)
     return []
   }
 }
@@ -127,15 +171,18 @@ export async function GET(req: NextRequest) {
   const startDate = searchParams.get('start') ?? today
   const endDate = searchParams.get('end') ?? in28Days
 
-  const [personalEvents, familyEvents, tasks] = await Promise.all([
+  const [personalEvents, familyEvents, meetAndGreetEvents, tasks] = await Promise.all([
     config.personalCalendarIcalUrl
       ? fetchIcalEvents(config.personalCalendarIcalUrl, 'personal', startDate, endDate)
       : Promise.resolve([]),
     config.familyCalendarIcalUrl
       ? fetchIcalEvents(config.familyCalendarIcalUrl, 'family', startDate, endDate)
       : Promise.resolve([]),
+    config.meetAndGreetCalendarId
+      ? fetchMeetAndGreetEvents(config.meetAndGreetCalendarId, startDate, endDate)
+      : Promise.resolve([]),
     fetchTasks(startDate, endDate),
   ])
 
-  return NextResponse.json({ personalEvents, familyEvents, tasks })
+  return NextResponse.json({ personalEvents, familyEvents, meetAndGreetEvents, tasks })
 }

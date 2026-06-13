@@ -23,6 +23,7 @@ interface UnavailablePeriod {
   start_date: string
   end_date: string
   reason: string
+  note?: string | null
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -152,7 +153,7 @@ function NewBookingInner() {
     const end = bookingType === 'Boarding' ? endDate : startDate
     if (!end) { setUnavailableWarning(null); return }
     const hit = unavailablePeriods.find(p => startDate <= p.end_date && end >= p.start_date)
-    setUnavailableWarning(hit ? `These dates overlap with an unavailable period (${hit.reason}).` : null)
+    setUnavailableWarning(hit ? `These dates overlap with an unavailable period (${hit.reason === 'Other' && hit.note ? `Other: ${hit.note}` : hit.reason}).` : null)
   }, [startDate, endDate, bookingType, isMultiDay, unavailablePeriods])
 
   // Capacity warning (single-day mode only)

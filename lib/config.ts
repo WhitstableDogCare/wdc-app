@@ -21,6 +21,7 @@ interface Config {
   publicGoogleCalendarId?: string
   personalCalendarIcalUrl?: string
   familyCalendarIcalUrl?: string
+  meetAndGreetCalendarId?: string
   appPassword?: string
 }
 

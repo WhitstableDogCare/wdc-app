@@ -23,6 +23,7 @@ interface UnavailablePeriod {
   start_date: string
   end_date: string
   reason: string
+  note?: string | null
 }
 
 type DayItem =
@@ -52,6 +53,17 @@ function groupByMonth(bookings: Booking[]) {
     const key = new Date(effectiveStart(b) + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
     if (!groups[key]) groups[key] = []
     groups[key].push(b)
+  }
+  return groups
+}
+
+function groupEventsByMonth(events: UnifiedEvent[]) {
+  const groups: Record<string, UnifiedEvent[]> = {}
+  for (const e of events) {
+    const dateStr = e.isAllDay ? e.start : e.start.split('T')[0]
+    const key = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+    if (!groups[key]) groups[key] = []
+    groups[key].push(e)
   }
   return groups
 }
@@ -159,6 +171,7 @@ export default function CalendarPage() {
   const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>([])
   const [personalEvents, setPersonalEvents] = useState<UnifiedEvent[]>([])
   const [familyEvents, setFamilyEvents] = useState<UnifiedEvent[]>([])
+  const [meetAndGreetEvents, setMeetAndGreetEvents] = useState<UnifiedEvent[]>([])
   const [tasks, setTasks] = useState<UnifiedTask[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddTask, setShowAddTask] = useState(false)
@@ -179,6 +192,7 @@ export default function CalendarPage() {
       setUnavailablePeriods(Array.isArray(uData) ? uData : [])
       setPersonalEvents(Array.isArray(unified.personalEvents) ? unified.personalEvents : [])
       setFamilyEvents(Array.isArray(unified.familyEvents) ? unified.familyEvents : [])
+      setMeetAndGreetEvents(Array.isArray(unified.meetAndGreetEvents) ? unified.meetAndGreetEvents : [])
       setTasks(Array.isArray(unified.tasks) ? unified.tasks : [])
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -213,7 +227,7 @@ export default function CalendarPage() {
   }
 
   const todayGuests = expanded.filter(b => isBookingToday(b))
-  const allEvents = [...personalEvents, ...familyEvents]
+  const allEvents = [...personalEvents, ...familyEvents, ...meetAndGreetEvents]
 
   // Stats
   const pastBookings2 = bookings.filter(b =>
@@ -253,12 +267,14 @@ export default function CalendarPage() {
   const farFutureStart = addDays(todayStr, 28)
   const farFutureBookings = expanded.filter(b => effectiveStart(b) >= farFutureStart).sort((a, b) => effectiveStart(a).localeCompare(effectiveStart(b)))
   const farFutureUnavailable = unavailablePeriods.filter(p => p.start_date >= farFutureStart)
+  const farFutureMeetAndGreet = meetAndGreetEvents.filter(e => (e.isAllDay ? e.start : e.start.split('T')[0]) >= farFutureStart)
   const farFutureBookingGroups = groupByMonth(farFutureBookings)
   const farFutureUnavailableGroups = groupUnavailableByMonth(farFutureUnavailable)
-  const allFarFutureMonths = new Set([...Object.keys(farFutureBookingGroups), ...Object.keys(farFutureUnavailableGroups)])
+  const farFutureMeetAndGreetGroups = groupEventsByMonth(farFutureMeetAndGreet)
+  const allFarFutureMonths = new Set([...Object.keys(farFutureBookingGroups), ...Object.keys(farFutureUnavailableGroups), ...Object.keys(farFutureMeetAndGreetGroups)])
   const sortedFarFutureMonths = Array.from(allFarFutureMonths).sort((a, b) => {
-    const dateA = new Date((farFutureBookingGroups[a]?.[0] ? effectiveStart(farFutureBookingGroups[a][0]) : farFutureUnavailableGroups[a]?.[0]?.start_date ?? '') + 'T12:00:00')
-    const dateB = new Date((farFutureBookingGroups[b]?.[0] ? effectiveStart(farFutureBookingGroups[b][0]) : farFutureUnavailableGroups[b]?.[0]?.start_date ?? '') + 'T12:00:00')
+    const dateA = new Date((farFutureBookingGroups[a]?.[0] ? effectiveStart(farFutureBookingGroups[a][0]) : farFutureUnavailableGroups[a]?.[0]?.start_date ?? farFutureMeetAndGreetGroups[a]?.[0]?.start ?? '') + 'T12:00:00')
+    const dateB = new Date((farFutureBookingGroups[b]?.[0] ? effectiveStart(farFutureBookingGroups[b][0]) : farFutureUnavailableGroups[b]?.[0]?.start_date ?? farFutureMeetAndGreetGroups[b]?.[0]?.start ?? '') + 'T12:00:00')
     return dateA.getTime() - dateB.getTime()
   })
 
@@ -367,21 +383,26 @@ export default function CalendarPage() {
 
                           if (item.kind === 'event') {
                             const e = item.e
+                            const isMeetAndGreet = e.source === 'meetAndGreet'
                             const isFamily = e.source === 'family'
+                            const bg = isMeetAndGreet ? 'var(--tint-amber)' : isFamily ? 'var(--tint-green)' : 'var(--tint-blue)'
+                            const textColor = isMeetAndGreet ? 'var(--tint-amber-text)' : isFamily ? 'var(--tint-green-text)' : 'var(--tint-blue-text)'
+                            const pillColor = isMeetAndGreet ? 'amber' : isFamily ? 'green' : 'blue'
+                            const pillLabel = isMeetAndGreet ? 'Meet & Greet' : isFamily ? 'Family' : 'Personal'
                             const startTime = fmtEventTime(e.start)
                             const endTime = fmtEventTime(e.end)
                             return (
                               <div key={`event-${e.id}-${i}`}
-                                style={{ background: isFamily ? 'var(--tint-green)' : 'var(--tint-blue)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                style={{ background: bg, borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                                 <div>
-                                  <p style={{ fontWeight: 600, fontSize: 13, color: isFamily ? 'var(--tint-green-text)' : 'var(--tint-blue-text)', margin: 0 }}>{e.title}</p>
+                                  <p style={{ fontWeight: 600, fontSize: 13, color: textColor, margin: 0 }}>{e.title}</p>
                                   {!e.isAllDay && startTime && (
-                                    <p style={{ fontSize: 11, color: isFamily ? 'var(--tint-green-text)' : 'var(--tint-blue-text)', opacity: 0.8, marginTop: 2 }}>
+                                    <p style={{ fontSize: 11, color: textColor, opacity: 0.8, marginTop: 2 }}>
                                       {startTime}{endTime && endTime !== startTime ? ` → ${endTime}` : ''}
                                     </p>
                                   )}
                                 </div>
-                                <Pill color={isFamily ? 'green' : 'blue'}>{isFamily ? 'Family' : 'Personal'}</Pill>
+                                <Pill color={pillColor}>{pillLabel}</Pill>
                               </div>
                             )
                           }
@@ -408,6 +429,7 @@ export default function CalendarPage() {
                                 style={{ background: 'var(--tint-neutral)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                                 <div>
                                   <p style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Unavailable — {p.reason}</p>
+                                  {p.note && <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{p.note}</p>}
                                   <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
                                     {p.start_date === p.end_date ? fmtDate(p.start_date) : <>{fmtDate(p.start_date)} → {fmtDate(p.end_date)}</>}
                                   </p>
@@ -434,10 +456,12 @@ export default function CalendarPage() {
                 {sortedFarFutureMonths.map(month => {
                   const monthBookings = farFutureBookingGroups[month] ?? []
                   const monthUnavailable = farFutureUnavailableGroups[month] ?? []
-                  type Row = { date: string } & ({ kind: 'booking'; b: Booking } | { kind: 'unavailable'; p: UnavailablePeriod })
+                  const monthMeetAndGreet = farFutureMeetAndGreetGroups[month] ?? []
+                  type Row = { date: string } & ({ kind: 'booking'; b: Booking } | { kind: 'unavailable'; p: UnavailablePeriod } | { kind: 'meetAndGreet'; e: UnifiedEvent })
                   const rows: Row[] = [
                     ...monthBookings.map(b => ({ kind: 'booking' as const, b, date: effectiveStart(b) })),
                     ...monthUnavailable.map(p => ({ kind: 'unavailable' as const, p, date: p.start_date })),
+                    ...monthMeetAndGreet.map(e => ({ kind: 'meetAndGreet' as const, e, date: e.isAllDay ? e.start : e.start.split('T')[0] })),
                   ].sort((a, b) => a.date.localeCompare(b.date))
 
                   return (
@@ -458,12 +482,41 @@ export default function CalendarPage() {
                                   </div>
                                   <div>
                                     <p style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Unavailable — {p.reason}</p>
+                                    {p.note && <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{p.note}</p>}
                                     <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
                                       {p.start_date === p.end_date ? fmtDate(p.start_date) : <>{fmtDate(p.start_date)} → {fmtDate(p.end_date)}</>}
                                     </p>
                                   </div>
                                 </div>
                                 <Pill color="neutral">Unavailable</Pill>
+                              </div>
+                            )
+                          }
+
+                          if (row.kind === 'meetAndGreet') {
+                            const e = row.e
+                            const dateStr = e.isAllDay ? e.start : e.start.split('T')[0]
+                            const startD = new Date(dateStr + 'T12:00:00')
+                            const startTime = fmtEventTime(e.start)
+                            const endTime = fmtEventTime(e.end)
+                            return (
+                              <div key={`mg-${e.id}`}
+                                style={{ background: 'var(--tint-amber)', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                  <div style={{ textAlign: 'center', minWidth: 32 }}>
+                                    <p style={{ fontSize: 10, color: 'var(--tint-amber-text)', lineHeight: 1, opacity: 0.8 }}>{startD.toLocaleDateString('en-GB', { month: 'short' })}</p>
+                                    <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--tint-amber-text)', lineHeight: 1.2 }}>{startD.getDate()}</p>
+                                  </div>
+                                  <div>
+                                    <p style={{ fontWeight: 600, color: 'var(--tint-amber-text)', fontSize: 13, margin: 0 }}>{e.title}</p>
+                                    {!e.isAllDay && startTime && (
+                                      <p style={{ fontSize: 11, color: 'var(--tint-amber-text)', opacity: 0.8, marginTop: 2 }}>
+                                        {startTime}{endTime && endTime !== startTime ? ` → ${endTime}` : ''}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Pill color="amber">Meet &amp; Greet</Pill>
                               </div>
                             )
                           }

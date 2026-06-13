@@ -16,7 +16,7 @@ export async function GET() {
 
 // POST /api/unavailable-periods
 export async function POST(req: NextRequest) {
-  const { startDate, endDate, reason } = await req.json()
+  const { startDate, endDate, reason, note } = await req.json()
 
   if (!startDate || !endDate || !reason) {
     return NextResponse.json({ error: 'startDate, endDate and reason are required.' }, { status: 400 })
@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
   }
   if (!VALID_REASONS.includes(reason)) {
     return NextResponse.json({ error: `reason must be one of: ${VALID_REASONS.join(', ')}` }, { status: 400 })
+  }
+  if (reason === 'Other' && !note?.trim()) {
+    return NextResponse.json({ error: 'A note is required when reason is Other.' }, { status: 400 })
   }
 
   // Check for overlapping confirmed bookings (warn only — do not block)
@@ -42,7 +45,7 @@ export async function POST(req: NextRequest) {
   })
 
   const period = await prisma.unavailablePeriod.create({
-    data: { start_date: startDate, end_date: endDate, reason },
+    data: { start_date: startDate, end_date: endDate, reason, note: note?.trim() || null },
   })
 
   // Sync public calendar for this date range (non-blocking)

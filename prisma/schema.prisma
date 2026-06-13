@@ -193,6 +193,7 @@ model UnavailablePeriod {
   start_date String
   end_date   String
   reason     String   // 'Holiday' | 'Illness' | 'Personal' | 'Other'
+  note       String?
   created_at DateTime @default(now())
 }
 
