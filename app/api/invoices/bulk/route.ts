@@ -116,7 +116,7 @@ export async function POST(req: Request) {
       const isBoarding = booking.booking_type.startsWith('Boarding')
       const preset = inferPresetFromTimes(booking.drop_off_time, booking.pick_up_time, isBoarding)
       const services = preset
-        ? buildServiceLines(preset, { start_date: booking.start_date, end_date: booking.end_date }, randomUUID)
+        ? buildServiceLines(preset, { start_date: booking.start_date, end_date: booking.end_date, drop_off_time: booking.drop_off_time, pick_up_time: booking.pick_up_time }, randomUUID)
         : []
       const subtotal = services.reduce((sum, s) => sum + serviceAmount(s), 0)
 

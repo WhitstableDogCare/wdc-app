@@ -35,7 +35,7 @@ async function createInvoiceAndSendEmail(booking: {
   drop_off_time: string | null
   pick_up_time: string | null
   notes: string | null
-}): Promise<{ invoiceId: number | null; sent: boolean }> {
+}, sendEmail = true): Promise<{ invoiceId: number | null; sent: boolean }> {
   const config = readConfig()
   if (!config.gmailAppPassword || !config.businessEmail) return { invoiceId: null, sent: false }
 
@@ -63,7 +63,7 @@ async function createInvoiceAndSendEmail(booking: {
   const isBoarding = booking.booking_type.startsWith('Boarding')
   const preset = inferPresetFromTimes(booking.drop_off_time, booking.pick_up_time, isBoarding)
   const services = preset
-    ? buildServiceLines(preset, { start_date: booking.start_date, end_date: booking.end_date }, randomUUID)
+    ? buildServiceLines(preset, { start_date: booking.start_date, end_date: booking.end_date, drop_off_time: booking.drop_off_time, pick_up_time: booking.pick_up_time }, randomUUID)
     : []
   const subtotal = services.reduce((sum, s) => sum + serviceAmount(s), 0)
 
@@ -93,9 +93,11 @@ async function createInvoiceAndSendEmail(booking: {
       due_date: booking.start_date,
       apply_discount: applyDiscount,
       total,
-      status: 'Unpaid',
+      status: sendEmail ? 'Unpaid' : 'Draft',
     },
   })
+
+  if (!sendEmail) return { invoiceId: invoice.id, sent: false }
 
   const invoiceHtml = generateInvoiceHtml(invoice, config)
   const browser = await puppeteer.launch({ headless: true })
@@ -233,25 +235,23 @@ export async function POST(req: NextRequest) {
   })
 
   let confirmationSent = false
-  if (sendEmail !== false) {
-    try {
-      const result = await createInvoiceAndSendEmail({
-        id: booking.id,
-        dog_id: dogId ?? null,
-        dog_name: dogName,
-        owner_name: ownerName,
-        owner_email: ownerEmail,
-        booking_type: bookingType,
-        start_date: startDate,
-        end_date: endDate ?? null,
-        drop_off_time: dropOffTime ?? null,
-        pick_up_time: pickUpTime ?? null,
-        notes,
-      })
-      confirmationSent = result.sent
-    } catch (e) {
-      console.error('Email/invoice error:', e)
-    }
+  try {
+    const result = await createInvoiceAndSendEmail({
+      id: booking.id,
+      dog_id: dogId ?? null,
+      dog_name: dogName,
+      owner_name: ownerName,
+      owner_email: ownerEmail,
+      booking_type: bookingType,
+      start_date: startDate,
+      end_date: endDate ?? null,
+      drop_off_time: dropOffTime ?? null,
+      pick_up_time: pickUpTime ?? null,
+      notes,
+    }, sendEmail !== false)
+    confirmationSent = result.sent
+  } catch (e) {
+    console.error('Email/invoice error:', e)
   }
 
   if (confirmationSent) {

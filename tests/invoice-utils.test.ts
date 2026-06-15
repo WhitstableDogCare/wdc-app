@@ -110,6 +110,71 @@ describe('buildServiceLines', () => {
       expect(lines).toHaveLength(0)
     })
 
+    describe('pickup-day daycare', () => {
+
+      it('adds a Long Day Care line when pick-up is >3h after drop-off', () => {
+        // Ernie's case: 8am drop-off, 6pm pick-up on 18th (10h gap)
+        const lines = buildServiceLines(overnight, {
+          start_date: '2026-06-17', end_date: '2026-06-18',
+          drop_off_time: '08:00', pick_up_time: '18:00',
+        }, uid)
+        expect(lines).toHaveLength(2)
+        expect(lines[0].type).toBe('boarding')
+        expect(lines[1].type).toBe('daycare')
+        expect(lines[1].description).toContain('Long Day Care')
+        expect(lines[1].startDate).toBe('2026-06-18')
+        expect(lines[1].quantity).toBe(1)
+      })
+
+      it('does not add daycare when pick-up is within 3h of drop-off', () => {
+        // 8am drop-off, 10:30am pick-up = 2.5h gap — no extra charge
+        const lines = buildServiceLines(overnight, {
+          start_date: '2026-06-17', end_date: '2026-06-18',
+          drop_off_time: '08:00', pick_up_time: '10:30',
+        }, uid)
+        expect(lines).toHaveLength(1)
+        expect(lines[0].type).toBe('boarding')
+      })
+
+      it('does not add daycare when pick-up is exactly 3h after drop-off', () => {
+        // 8am drop-off, 11am pick-up = exactly 3h — no extra charge
+        const lines = buildServiceLines(overnight, {
+          start_date: '2026-06-17', end_date: '2026-06-18',
+          drop_off_time: '08:00', pick_up_time: '11:00',
+        }, uid)
+        expect(lines).toHaveLength(1)
+      })
+
+      it('adds a Full Day Care line when gap is between 4 and 8 hours', () => {
+        // 9am drop-off, 4pm pick-up = 7h gap
+        const lines = buildServiceLines(overnight, {
+          start_date: '2026-06-17', end_date: '2026-06-18',
+          drop_off_time: '09:00', pick_up_time: '16:00',
+        }, uid)
+        expect(lines).toHaveLength(2)
+        expect(lines[1].description).toContain('Full Day Care')
+      })
+
+      it('does not add daycare when drop_off_time or pick_up_time is missing', () => {
+        const lines = buildServiceLines(overnight, {
+          start_date: '2026-06-17', end_date: '2026-06-18',
+        }, uid)
+        expect(lines).toHaveLength(1)
+      })
+
+      it('applies peak rate to daycare line when pickup day is peak', () => {
+        // Weekend pickup — Sat 20 Jun 2026
+        const lines = buildServiceLines(overnight, {
+          start_date: '2026-06-19', end_date: '2026-06-20',
+          drop_off_time: '08:00', pick_up_time: '18:00',
+        }, uid)
+        const daycareLines = lines.filter(l => l.type === 'daycare')
+        expect(daycareLines).toHaveLength(1)
+        expect(daycareLines[0].description).toContain('Peak Rate')
+      })
+
+    })
+
   })
 
   describe('daycare', () => {

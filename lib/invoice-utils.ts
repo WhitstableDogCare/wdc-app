@@ -113,7 +113,7 @@ export function groupConsecutive<T>(items: T[], getKey: (item: T) => string): Ar
 // Daycare: each day is checked individually.
 export function buildServiceLines(
   preset: ServicePreset,
-  booking: { start_date: string; end_date: string | null },
+  booking: { start_date: string; end_date: string | null; drop_off_time?: string | null; pick_up_time?: string | null },
   uid: () => string
 ): ServiceLine[] {
   if (preset.type === 'boarding') {
@@ -126,7 +126,7 @@ export function buildServiceLines(
     }
     if (nights.length === 0) return []
 
-    return groupConsecutive(nights, d => isPeakDate(d) ? 'peak' : 'standard').map(group => {
+    const lines: ServiceLine[] = groupConsecutive(nights, d => isPeakDate(d) ? 'peak' : 'standard').map(group => {
       const peak = group.key === 'peak'
       return {
         id: uid(),
@@ -138,6 +138,32 @@ export function buildServiceLines(
         rate: peak ? preset.peak : preset.standard,
       }
     })
+
+    // If pick-up is more than 3 hours after drop-off, charge a daycare session on the pick-up day
+    const dropOff = booking.drop_off_time
+    const pickUp = booking.pick_up_time
+    if (dropOff && pickUp && end) {
+      const [dh, dm] = dropOff.split(':').map(Number)
+      const [ph, pm] = pickUp.split(':').map(Number)
+      const diffMins = (ph * 60 + pm) - (dh * 60 + dm)
+      if (diffMins > 180) {
+        const daycarePreset = inferPresetFromTimes(dropOff, pickUp, false)
+        if (daycarePreset) {
+          const peak = isPeakDate(end)
+          lines.push({
+            id: uid(),
+            type: 'daycare' as const,
+            description: `${daycarePreset.name} (${peak ? 'Peak Rate' : 'Standard Rate'})`,
+            startDate: end,
+            endDate: '',
+            quantity: 1,
+            rate: peak ? daycarePreset.peak : daycarePreset.standard,
+          })
+        }
+      }
+    }
+
+    return lines
   } else {
     const dates: string[] = []
     let cur = booking.start_date
