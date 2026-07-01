@@ -39,6 +39,8 @@ interface DogFormData {
   food_and_treats: string
   dietary_requirements: string
   medical_requirements: string
+  known_triggers: string
+  is_insured: string
   vaccination_date: string
   flea_worm_date: string
   consent_daily_activities: string[]
@@ -222,6 +224,14 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
     food_and_treats: (init as DogFormData).food_and_treats || '',
     dietary_requirements: (init as DogFormData).dietary_requirements || '',
     medical_requirements: (init as DogFormData).medical_requirements || '',
+    known_triggers: (init as DogFormData).known_triggers || '',
+    is_insured: (() => {
+      const v = (init as unknown as { is_insured?: boolean | string | null }).is_insured
+      if (v === null || v === undefined || v === '') return ''
+      if (v === true || v === 'true') return 'true'
+      if (v === false || v === 'false') return 'false'
+      return ''
+    })(),
     vaccination_date: (init as DogFormData).vaccination_date || '',
     flea_worm_date: (init as DogFormData).flea_worm_date || '',
     consent_daily_activities: parseJsonArray((init as DogFormData).consent_daily_activities as unknown as string),
@@ -272,6 +282,8 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
       food_and_treats: form.food_and_treats || null,
       dietary_requirements: form.dietary_requirements || null,
       medical_requirements: form.medical_requirements || null,
+      known_triggers: form.known_triggers || null,
+      is_insured: form.is_insured === 'true' ? true : form.is_insured === 'false' ? false : null,
       vaccination_date: form.vaccination_date || null,
       flea_worm_date: form.flea_worm_date || null,
       consent_daily_activities: JSON.stringify(form.consent_daily_activities),
@@ -390,12 +402,23 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
             <option value="No">No</option>
           </select>
         </FormField>
-        <FormField label="Off-Lead">
+        <FormField label="Reliable Off-Lead?">
           <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.off_lead} onChange={(e) => set('off_lead', e.target.value)}>
             <option value="">Unknown</option>
-            <option value="Yes">Yes</option>
-            <option value="Working on it">Working on it</option>
-            <option value="No">No</option>
+            <option value="Reliable">Reliable</option>
+            <option value="Usually reliable">Usually reliable</option>
+            <option value="On-lead only">On-lead only</option>
+            <option value="Not yet trained">Not yet trained</option>
+            <option value="Yes">Yes (legacy)</option>
+            <option value="Working on it">Working on it (legacy)</option>
+            <option value="No">No (legacy)</option>
+          </select>
+        </FormField>
+        <FormField label="Is Your Dog Insured?">
+          <select style={{ width: '100%', boxSizing: 'border-box' }} value={form.is_insured} onChange={(e) => set('is_insured', e.target.value)}>
+            <option value="">Unknown</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
           </select>
         </FormField>
         <FormField label="Special Behaviours / Triggers">
@@ -437,6 +460,9 @@ export default function DogForm({ initialData, mode, dogId }: DogFormProps) {
         </div>
         <FormField label="Medical Requirements">
           <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={3} value={form.medical_requirements} onChange={(e) => set('medical_requirements', e.target.value)} placeholder="Any medications, conditions, or special medical needs…" />
+        </FormField>
+        <FormField label="Known Fears, Triggers or Sensitivities">
+          <textarea style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }} rows={3} value={form.known_triggers} onChange={(e) => set('known_triggers', e.target.value)} placeholder="e.g. loud noises, other dogs, children, being left alone…" />
         </FormField>
       </SectionCard>
 

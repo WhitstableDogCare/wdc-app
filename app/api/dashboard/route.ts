@@ -57,6 +57,16 @@ export async function GET() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8)
 
+  // How did you hear about us (v2.0 referral tracking — only counts dogs with data)
+  const heardAboutUsMap: Record<string, number> = {}
+  for (const d of dogs) {
+    if (d.heard_about_us) {
+      heardAboutUsMap[d.heard_about_us] = (heardAboutUsMap[d.heard_about_us] ?? 0) + 1
+    }
+  }
+  const heardAboutUsBreakdown = Object.entries(heardAboutUsMap)
+    .sort((a, b) => b[1] - a[1])
+
   // Overdue vaccinations (date older than 1 year)
   const overdueVaccinations = dogs
     .filter(d => {
@@ -85,6 +95,7 @@ export async function GET() {
       unknownNeutered,
       energyBreakdown: energyMap,
       topBreeds,
+      heardAboutUsBreakdown,
       overdueVaccinations,
       missingVaccinations,
     },

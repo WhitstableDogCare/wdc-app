@@ -50,6 +50,7 @@ interface DogStats {
   unknownNeutered: number
   energyBreakdown: Record<string, number>
   topBreeds: [string, number][]
+  heardAboutUsBreakdown: [string, number][]
   overdueVaccinations: { id: number; name: string; vaccination_date: string | null }[]
   missingVaccinations: { id: number; name: string }[]
 }
@@ -502,6 +503,14 @@ export default function DashboardPage() {
               <MiniBar key={breed} label={breed} value={count} max={ds.topBreeds[0]?.[1] ?? 1} />
             ))}
           </div>
+          {ds.heardAboutUsBreakdown.length > 0 && (
+            <div>
+              <SectionLabel>How Did You Hear About Us?</SectionLabel>
+              {ds.heardAboutUsBreakdown.map(([source, count]) => (
+                <MiniBar key={source} label={source} value={count} max={ds.heardAboutUsBreakdown[0]?.[1] ?? 1} />
+              ))}
+            </div>
+          )}
         </div>
       </Card>
 

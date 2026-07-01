@@ -30,8 +30,8 @@ const Q = {
   buddy2EmergencyPhone: 'EldQyA',
   buddy2Address: 'rOaAzp',
   buddy2Email: '47Jxed',
-  consentCommunication: '2AaNQg',
-  consentSocialMedia: 'xDMaOE',
+  consentCommunication: 'qOg9Yg', // v2.0 — replaces deleted question 2AaNQg
+  consentSocialMedia: 'QdjbxX',   // v2.0 — replaces deleted question xDMaOE
   vaccinationDate: 'eaDvBk',
   fleaWormDate: 'W8r1Av',
   medicalRequirements: 'NXlWGN',
@@ -41,7 +41,12 @@ const Q = {
   equipmentWdc: 'WRE5xL',
   foodAndTreats: 'a45Y7W',
   dietaryRequirements: '6Kj2ao',
-  anythingElse: 'BXQg7N',
+  anythingElse: '7KL266',
+  dogCommands: 'BXQg7N',
+  insured: 'NLEa4O',
+  recallReliability: '9Ox865',
+  knownTriggers: 'eLyVNl',
+  heardAboutUs: 'WPQLek',
 }
 
 type TallyResponse = { questionId: string; answer: unknown }
@@ -135,8 +140,13 @@ export async function POST(
     const foodAndTreats = getAnswer(responses, Q.foodAndTreats)
     const dietaryRequirements = getAnswer(responses, Q.dietaryRequirements)
     const anythingElse = getAnswer(responses, Q.anythingElse)
+    const dogCommands = getAnswer(responses, Q.dogCommands)
     const consentCommunication = getAnswer(responses, Q.consentCommunication)
     const consentSocialMedia = getAnswer(responses, Q.consentSocialMedia)
+    const insuredStr = getAnswer(responses, Q.insured)
+    const recallReliability = getAnswer(responses, Q.recallReliability)
+    const knownTriggers = getAnswer(responses, Q.knownTriggers)
+    const heardAboutUs = getAnswer(responses, Q.heardAboutUs)
 
     // Match or create dog
     let targetDogId = dogId
@@ -164,8 +174,13 @@ export async function POST(
       ...(foodAndTreats && foodAndTreats !== 'None' && { food_and_treats: foodAndTreats }),
       ...(dietaryRequirements && dietaryRequirements !== 'None' && { dietary_requirements: dietaryRequirements }),
       ...(anythingElse && anythingElse !== 'No' && { notes: anythingElse }),
+      ...(dogCommands && { dog_commands: dogCommands }),
       ...(consentCommunication && { consent_communication: consentCommunication }),
       ...(consentSocialMedia && { consent_social_media: consentSocialMedia }),
+      ...(insuredStr === 'Yes' || insuredStr === 'No' ? { is_insured: insuredStr === 'Yes' } : {}),
+      ...(recallReliability && { off_lead: recallReliability }),
+      ...(knownTriggers && { known_triggers: knownTriggers }),
+      ...(heardAboutUs && { heard_about_us: heardAboutUs }),
     }
 
     let dog

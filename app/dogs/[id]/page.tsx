@@ -44,6 +44,8 @@ interface Dog {
   equipment_provided: string | null
   equipment_wdc: string | null
   notes: string | null
+  is_insured: boolean | null
+  known_triggers: string | null
   is_solo: boolean
   archived: boolean
   owners: Owner[]
@@ -89,6 +91,13 @@ function outcomePillColor(outcome: string): 'green' | 'red' | 'gold' {
   if (outcome === 'Passed') return 'green'
   if (outcome === 'Failed') return 'red'
   return 'gold'
+}
+
+function recallColor(offLead: string): 'green' | 'amber' | 'red' | 'neutral' {
+  if (offLead === 'Reliable') return 'green'
+  if (offLead === 'Usually reliable') return 'amber'
+  if (offLead === 'On-lead only' || offLead === 'Not yet trained') return 'red'
+  return 'neutral' // legacy pre-v2.0 values (Yes / No / Working on it)
 }
 
 function TrialEligibilityBadges({ trials }: { trials: TrialReview[] }) {
@@ -793,6 +802,10 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
                 {dog.sex && <Pill color="blue">{dog.sex}</Pill>}
                 {dog.neutered !== null && dog.neutered !== undefined && <Pill color={dog.neutered ? 'purple' : 'amber'}>{dog.neutered ? 'Neutered' : 'Intact'}</Pill>}
                 {dog.energy_level && <Pill color="gold">{dog.energy_level} energy</Pill>}
+                {dog.off_lead && <Pill color={recallColor(dog.off_lead)} dot>{dog.off_lead}</Pill>}
+                {dog.is_insured !== null && dog.is_insured !== undefined && (
+                  <Pill color={dog.is_insured ? 'green' : 'red'} dot>{dog.is_insured ? 'Insured' : 'Not Insured'}</Pill>
+                )}
                 {dog.is_solo && <Pill color="amber">Solo</Pill>}
                 {dog.archived && <Pill color="neutral">Archived</Pill>}
               </div>
@@ -811,6 +824,14 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       </Card>
+
+      {/* Not insured warning */}
+      {dog.is_insured === false && (
+        <div style={{ background: 'var(--tint-red)', border: '1px solid var(--tint-red-text)', borderRadius: 10, padding: '12px 16px', marginBottom: 12 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--tint-red-text)', margin: 0 }}>⚠ Not insured</p>
+          <p style={{ fontSize: 11, color: 'var(--tint-red-text)', opacity: 0.8, margin: 0 }}>Check insurance cover before authorising any vet treatment.</p>
+        </div>
+      )}
 
       {/* Archived banner */}
       {dog.archived && (
@@ -885,6 +906,11 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
                 {dog.medical_requirements && <Field label="Medical Requirements" value={dog.medical_requirements} />}
                 {dog.microchip_number && <Field label="Microchip Number" value={dog.microchip_number} />}
               </FieldGrid>
+              {dog.known_triggers && (
+                <div style={{ marginTop: 12 }}>
+                  <Field label="Known Fears / Triggers / Sensitivities" value={dog.known_triggers} />
+                </div>
+              )}
             </div>
           )}
 

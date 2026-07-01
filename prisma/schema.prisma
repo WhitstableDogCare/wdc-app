@@ -42,6 +42,9 @@ model Dog {
   equipment_provided        String?
   equipment_wdc             String?
   notes                     String?
+  is_insured                Boolean?
+  known_triggers            String?
+  heard_about_us            String?
   is_solo                   Boolean           @default(false)
   archived                  Boolean           @default(false)
   created_at                DateTime          @default(now())
@@ -93,12 +96,14 @@ model Buddy {
 }
 
 model TallySubmission {
-  id            Int      @id @default(autoincrement())
-  submission_id String   @unique
+  id            Int       @id @default(autoincrement())
+  submission_id String    @unique
   dog_id        Int?
   raw_data      String
-  imported_at   DateTime @default(now())
-  dog           Dog?     @relation(fields: [dog_id], references: [id], onDelete: SetNull)
+  imported_at   DateTime  @default(now())
+  form_version  String?
+  submitted_at  DateTime?
+  dog           Dog?      @relation(fields: [dog_id], references: [id], onDelete: SetNull)
 }
 
 model Invoice {

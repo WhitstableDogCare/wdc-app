@@ -172,6 +172,7 @@ export default async function ExportPage() {
                 <Section title="Behaviour & Care" />
                 <Row label="Energy Level" value={fmt(dog.energy_level)} />
                 <Row label="Off-Lead" value={fmt(dog.off_lead)} />
+                <Row label="Insured" value={dog.is_insured === null ? '—' : dog.is_insured ? 'Yes' : 'No'} />
                 <Row label="Gets Along With Cats" value={fmt(dog.gets_along_with_cats)} />
                 <Row label="Good With Children" value={fmt(dog.good_with_children)} />
                 <Row label="Special Behaviours" value={fmt(dog.special_behaviours)} />
@@ -191,6 +192,7 @@ export default async function ExportPage() {
                 <Row label="Vaccination Date" value={fmtDate(dog.vaccination_date)} />
                 <Row label="Flea & Worm Treatment" value={fmtDate(dog.flea_worm_date)} />
                 <Row label="Medical Requirements" value={fmt(dog.medical_requirements)} />
+                <Row label="Known Fears / Triggers / Sensitivities" value={fmt(dog.known_triggers)} />
 
                 {/* Consents */}
                 {(consents.length > 0 || equipOwner.length > 0 || equipWdc.length > 0 || dog.concerns_daily_activities || dog.consent_social_media || dog.consent_communication) && (

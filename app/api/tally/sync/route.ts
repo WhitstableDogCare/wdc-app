@@ -44,6 +44,8 @@ export async function GET() {
             submission_id: submissionId,
             raw_data: JSON.stringify(sub),
             dog_id: null,
+            form_version: '2.0',
+            submitted_at: sub.submittedAt ? new Date(sub.submittedAt) : null,
           },
         })
         newCount++
