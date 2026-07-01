@@ -80,9 +80,11 @@ function DogCard({ dog, dimmed = false }: { dog: Dog; dimmed?: boolean }) {
           {dog.medical_requirements && !['none', 'n/a'].includes(dog.medical_requirements.trim().toLowerCase()) && (
             <Pill color="amber">Medical</Pill>
           )}
-          {dog.off_lead === 'Yes'            && <Pill color="green">Off-lead</Pill>}
-          {dog.off_lead === 'Working on it'  && <Pill color="gold">Lead training</Pill>}
-          {dog.off_lead === 'No'             && <Pill color="red">On-lead</Pill>}
+          {(dog.off_lead === 'Yes' || dog.off_lead === 'Reliable')       && <Pill color="green">Off-lead</Pill>}
+          {dog.off_lead === 'Usually reliable'                           && <Pill color="amber">Off-lead (usually)</Pill>}
+          {dog.off_lead === 'Working on it'                              && <Pill color="gold">Lead training</Pill>}
+          {(dog.off_lead === 'No' || dog.off_lead === 'On-lead only')    && <Pill color="red">On-lead</Pill>}
+          {dog.off_lead === 'Not yet trained'                            && <Pill color="red">On-lead (training)</Pill>}
           {dog.is_solo && <Pill color="amber">Solo</Pill>}
         </div>
       </div>

@@ -93,11 +93,18 @@ function outcomePillColor(outcome: string): 'green' | 'red' | 'gold' {
   return 'gold'
 }
 
-function recallColor(offLead: string): 'green' | 'amber' | 'red' | 'neutral' {
-  if (offLead === 'Reliable') return 'green'
-  if (offLead === 'Usually reliable') return 'amber'
-  if (offLead === 'On-lead only' || offLead === 'Not yet trained') return 'red'
-  return 'neutral' // legacy pre-v2.0 values (Yes / No / Working on it)
+function offLeadPill(offLead: string): { label: string; color: 'green' | 'amber' | 'gold' | 'red' } {
+  switch (offLead) {
+    case 'Reliable': return { label: 'Off-lead', color: 'green' }
+    case 'Usually reliable': return { label: 'Off-lead (usually)', color: 'amber' }
+    case 'On-lead only': return { label: 'On-lead', color: 'red' }
+    case 'Not yet trained': return { label: 'On-lead (training)', color: 'red' }
+    // legacy pre-v2.0 values
+    case 'Yes': return { label: 'Off-lead', color: 'green' }
+    case 'Working on it': return { label: 'Lead training', color: 'gold' }
+    case 'No': return { label: 'On-lead', color: 'red' }
+    default: return { label: offLead, color: 'gold' }
+  }
 }
 
 function TrialEligibilityBadges({ trials }: { trials: TrialReview[] }) {
@@ -802,7 +809,7 @@ export default function DogProfilePage({ params }: { params: Promise<{ id: strin
                 {dog.sex && <Pill color="blue">{dog.sex}</Pill>}
                 {dog.neutered !== null && dog.neutered !== undefined && <Pill color={dog.neutered ? 'purple' : 'amber'}>{dog.neutered ? 'Neutered' : 'Intact'}</Pill>}
                 {dog.energy_level && <Pill color="gold">{dog.energy_level} energy</Pill>}
-                {dog.off_lead && <Pill color={recallColor(dog.off_lead)} dot>{dog.off_lead}</Pill>}
+                {dog.off_lead && <Pill color={offLeadPill(dog.off_lead).color} dot>{offLeadPill(dog.off_lead).label}</Pill>}
                 {dog.is_insured !== null && dog.is_insured !== undefined && (
                   <Pill color={dog.is_insured ? 'green' : 'red'} dot>{dog.is_insured ? 'Insured' : 'Not Insured'}</Pill>
                 )}
