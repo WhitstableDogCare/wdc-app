@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, Btn, Pill, Field, FieldGrid } from '../../components/ui'
+import TimeSelect from '../../components/TimeSelect'
 
 interface Owner { id: number; name: string | null; phone: string | null; emergency_phone: string | null; address: string | null; email: string | null }
 interface Vet { id: number; name: string | null; phone: string | null; emergency_phone: string | null; address: string | null; email: string | null }
@@ -143,6 +144,16 @@ function TrialForm({ dogId, initial, onSave, onCancel }: {
   const [saving, setSaving] = useState(false)
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
+  const combineDateTime = (date: string, time: string) => date && time ? `${date}T${time}` : date
+  const setDatePart = (key: 'start_datetime' | 'end_datetime', date: string) => {
+    setForm(f => ({ ...f, [key]: combineDateTime(date, f[key].split('T')[1] ?? '') }))
+  }
+  const setTimePart = (key: 'start_datetime' | 'end_datetime', time: string) => {
+    setForm(f => ({ ...f, [key]: combineDateTime(f[key].split('T')[0] ?? '', time) }))
+  }
+  const [startDate, startTime] = form.start_datetime.split('T')
+  const [endDate, endTime] = form.end_datetime.split('T')
+
   const handleSave = async () => {
     setSaving(true)
     const url    = initial ? `/api/dogs/${dogId}/trials/${initial.id}` : `/api/dogs/${dogId}/trials`
@@ -175,11 +186,17 @@ function TrialForm({ dogId, initial, onSave, onCancel }: {
         </div>
         <div>
           <label>Start Date & Time</label>
-          <input type="datetime-local" value={form.start_datetime} onChange={e => set('start_datetime', e.target.value)} style={{ width: '100%', marginTop: 4 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4 }}>
+            <input type="date" value={startDate ?? ''} onChange={e => setDatePart('start_datetime', e.target.value)} style={{ width: '100%' }} />
+            <TimeSelect value={startTime ?? ''} onChange={t => setTimePart('start_datetime', t)} minHour={7} maxHour={21} />
+          </div>
         </div>
         <div>
           <label>End Date & Time</label>
-          <input type="datetime-local" value={form.end_datetime} onChange={e => set('end_datetime', e.target.value)} style={{ width: '100%', marginTop: 4 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4 }}>
+            <input type="date" value={endDate ?? ''} onChange={e => setDatePart('end_datetime', e.target.value)} style={{ width: '100%' }} />
+            <TimeSelect value={endTime ?? ''} onChange={t => setTimePart('end_datetime', t)} minHour={7} maxHour={21} />
+          </div>
         </div>
         <div>
           <label>Dogs Mixed With</label>
