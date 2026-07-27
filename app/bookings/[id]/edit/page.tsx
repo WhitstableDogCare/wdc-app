@@ -210,7 +210,7 @@ export default function EditBookingPage() {
         <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--density-radius-card)', padding: 18 }}>
           <FieldLabel>Booking Type</FieldLabel>
           <div style={{ display: 'flex', gap: 8 }}>
-            {(['Boarding', 'Daycare'] as const).map(t => (
+            {(['Daycare', 'Boarding'] as const).map(t => (
               <button key={t} onClick={() => setBookingType(t)} style={{
                 flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600,
                 fontFamily: 'var(--font-label)', letterSpacing: '0.06em', textTransform: 'uppercase',
